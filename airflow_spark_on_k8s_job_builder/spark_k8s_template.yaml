@@ -1,0 +1,67 @@
+# More info:
+# - https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/operators.html#sparkkubernetesoperator
+# - https://github.com/GoogleCloudPlatform/spark-on-k8s-operator/blob/master/docs/user-guide.md
+---
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: "{{ params.jobName }}-{{ ts_nodash|lower }}-{{ task_instance.try_number }}"
+  namespace: "{{ params.namespace }}"
+spec:
+  sparkConf: {{ params.sparkConf }}
+  timeToLiveSeconds: 600
+  {% if params.imagePullSecrets|length %}
+  imagePullSecrets: {{ params.imagePullSecrets }}
+  {% endif %}
+  type: "{{ params.language }}"
+  mode: cluster
+  image: "{{ params.dockerImage }}:{{ params.dockerImageTag }}"
+  imagePullPolicy: Always
+  mainClass: "{{ params.mainClass }}"
+  mainApplicationFile: "{{ params.mainApplicationFile }}"
+  sparkVersion: "{{ params.sparkVersion }}"
+  {% if params.jobArguments and params.jobArguments|length %}
+  arguments: {{ params.jobArguments }}
+  {% endif %}
+  restartPolicy:
+    type: Never
+  driver:
+    {% if params.driver.affinity|length %}
+    affinity: {{ params.driver.affinity }}
+    {% endif %}
+    {% if params.driver.annotations|length %}
+    annotations: {{ params.driver.annotations }}
+    {% endif %}
+    cores: {{ params.driver.cores }}
+    coreRequest: "{{ params.driver.coreRequest }}"
+    coreLimit: "{{ params.driver.coreLimit }}"
+    memory: "{{ params.driver.memory }}"
+    {% if params.driver.labels|length %}
+    labels: {{ params.driver.labels }}
+    {% endif %}
+    serviceAccount: "{{ params.driver.serviceAccount }}"
+    {% if params.driver.secrets|length %}
+    secrets: {{ params.driver.secrets }}
+    {% endif %}
+    {% if params.driver.env|length %}
+    env: {{ params.driver.env }}
+    {% endif %}
+  executor:
+    {% if params.executor.affinity|length %}
+    affinity: {{ params.executor.affinity }}
+    {% endif %}
+    cores: {{ params.executor.cores }}
+    instances: {{ params.executor.instances }}
+    coreRequest: "{{ params.executor.coreRequest }}"
+    coreLimit: "{{ params.executor.coreLimit }}"
+    memory: "{{ params.executor.memory }}"
+    {% if params.executor.annotations|length %}
+    annotations: {{ params.executor.annotations }}
+    {% endif %}
+    {% if params.executor.labels|length %}
+    labels: {{ params.executor.labels }}
+    {% endif %}
+    serviceAccount: "{{ params.executor.serviceAccount }}"
+    {% if params.executor.secrets|length %}
+    secrets: {{ params.executor.secrets }}
+    {% endif %}

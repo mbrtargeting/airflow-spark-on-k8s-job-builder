@@ -1,0 +1,306 @@
+import copy
+import unittest
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from airflow import DAG
+from airflow.utils import yaml
+from jinja2 import Template
+
+from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder, DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+
+
+class TestSparkK8sJobBuilder(unittest.TestCase):
+
+    def setUp(self):
+
+        self.mock_dag = DAG(
+            dag_id="test_dag",
+            default_args={"retries": 3, 'retry_delay': timedelta(minutes=5)},
+            start_date=datetime(2023, 1, 1)
+        )
+
+        self.task_id = "test_task_id"
+        self.job_name = "test_job"
+        self.docker_img = "docker_img"
+        self.docker_img_tag = "1.2.3"
+        self.namespace = "my_namespace"
+        self.service_account = "my_service_account"
+        self.main_class = "my-class"
+        self.main_application_file = "my-app-file"
+        self.sut = self._get_sut()
+
+    def _get_sut(self) -> SparkK8sJobBuilder:
+        """ factory for system under test """
+        return SparkK8sJobBuilder(
+            dag=self.mock_dag,
+            task_id=self.task_id,
+            docker_img=self.docker_img,
+            docker_img_tag=self.docker_img_tag,
+            job_name=self.job_name,
+            namespace=self.namespace,
+            service_account=self.service_account,
+            main_class=self.main_class,
+            main_application_file=self.main_application_file,
+        )
+
+    def test_spark_k8s_yaml_file_is_yaml_renderable(self):
+        repo_root = Path().resolve()
+        while not (repo_root / '.git').exists():
+            # recurse up to find the repo root independent of where PYTHON_PATH is set
+            repo_root = repo_root.parent
+
+        # given: The default spark k8s app file
+        yaml_file_path = repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+        template = Template(yaml_content)
+        params = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
+        params['ts_nodash'] = "mock-value"
+        params['task_instance'] = {}
+        params['task_instance']['try_number'] = 1
+        # when: it renders with the default config into a yaml string
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+        assert True
+
+    def test_set_driver_cores_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid value
+        # then: It should raise a ValueError for invalid value
+        with self.assertRaises(ValueError):
+            self.sut.set_driver_cores(0)
+
+    def test_set_driver_cores_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid cores value
+        expected = 4
+        self.sut.set_driver_cores(expected)
+        # then: It should correctly assign that value of cores
+        self.assertEqual(expected, self.sut._job_spec['params']['driver']['cores'])
+
+    def test_set_driver_memory_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid value
+        # then: It should raise a ValueError for invalid value
+        with self.assertRaises(ValueError):
+            self.sut.set_driver_memory("")
+
+    def test_set_driver_memory_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid memory value
+        expected = "8g"
+        self.sut.set_driver_memory(expected)
+        # then: It should correctly assign that value of memory
+        self.assertEqual(expected, self.sut._job_spec['params']['driver']['memory'])
+
+    def test_set_executor_cores_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid value
+        # then: It should raise a ValueError for invalid value
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_cores(0)
+
+    def test_set_executor_cores_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid cores value
+        expected = 2
+        self.sut.set_executor_cores(expected)
+        # then: It should correctly assign that value of cores
+        self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
+
+    def test_set_executor_memory_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid memory value
+        # then: It should raise a ValueError for empty value
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_memory("")
+
+    def test_set_executor_memory_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid memory value
+        expected = "16g"
+        self.sut.set_executor_memory(expected)
+        # then: It should correctly assign that value of memory
+        self.assertEqual(expected, self.sut._job_spec['params']['executor']['memory'])
+
+    def test_set_executor_instances_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_instances(0)
+
+    def test_set_executor_instances_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid nr of instances
+        expected = 5
+        self.sut.set_executor_instances(expected)
+        # then: It should correctly assign that value of instances
+        self.assertEqual(expected, self.sut._job_spec['params']['executor']['instances'])
+
+    def test_update_driver_labels_should_not_accept_empty_dict_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid labels
+        # then: It should raise a ValueError for empty driver labels
+        with self.assertRaises(ValueError):
+            self.sut.update_driver_labels({})  # Empty dictionary
+
+    def test_set_driver_labels_should_accept_labels_should_succeed(self):
+        # given: a standard SUT
+        labels = {"app": "test-app", "env": "dev", 'version': '3.4.2'}
+        # when: Setting SUT with valid labels
+        self.sut.set_driver_labels(labels)
+        # then: It should correctly assign that value of labels
+        self.assertEqual(labels, self.sut._job_spec['params']['driver']['labels'])
+
+    def test_update_executor_labels_should_not_accept_empty_dict_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid labels
+        # then: It should raise a ValueError for empty executor labels
+        with self.assertRaises(ValueError):
+            self.sut.update_executor_labels({})
+
+    def test_set_executor_labels_should_accept_labels(self):
+        # given: a standard SUT
+        labels = {"app": "test-app", "env": "dev"}
+        # when: Setting SUT with valid labels
+        self.sut.set_executor_labels(labels)
+        # then: It should correctly assign that value of labels
+        self.assertEqual(labels, self.sut._job_spec['params']['executor']['labels'])
+
+    def test_set_spark_conf_should_succeed(self):
+        """Given a valid spark conf, When setting the spark conf, Then it should update the sparkConf."""
+        # given: a standard SUT
+        # when: Setting SUT with valid spark conf
+        conf = {"spark.executor.memoryOverhead": "1024M", "spark.dynamicAllocation.enabled": "false"}
+        self.sut.update_spark_conf(conf)
+
+        # then: It should correctly assign that value of labels
+        expected_conf = DEFAULT_SPARK_CONF.copy()
+        expected_conf["spark.executor.memoryOverhead"] = "1024M"
+        expected_conf["spark.dynamicAllocation.enabled"] = "false"
+        self.assertEqual(expected_conf, self.sut._job_spec['params']['sparkConf'])
+
+    def test_set_main_class_should_succeed(self):
+        """Given a valid main class name, When setting the main class, Then it should update the job spec."""
+        # given: A valid main class name
+        main_class = "org.example.MainClass"
+
+        # when: Setting the main class
+        self.sut.set_main_class(main_class)
+
+        # then: The job spec should be updated with the correct main class
+        self.assertEqual(main_class, self.sut._job_spec['params']['mainClass'])
+
+    def test_set_main_class_empty_string_should_fail(self):
+        """Given an empty main class, When setting the main class, Then it should raise a ValueError."""
+        # given: An empty main class
+        main_class = ""
+
+        # when: Setting the main class
+        with self.assertRaises(ValueError) as context:
+            self.sut.set_main_class(main_class)
+        # then: It should raise a ValueError for the empty main class
+        self.assertEqual(str(context.exception), 'Need to provide a non-empty string for changing the job main class')
+
+    def test_set_main_application_file_should_succeed(self):
+        """Given a valid main application file, When setting the file, Then it should update the job spec."""
+        # given: A valid main application file
+        main_app_file = "local:///opt/spark/app.jar"
+
+        # when: Setting the main application file
+        self.sut.set_main_application_file(main_app_file)
+
+        # then: The job spec should be updated with the correct main application file
+        self.assertEqual(main_app_file, self.sut._job_spec['params']['mainApplicationFile'])
+
+    def test_set_main_application_file_empty_string_should_fail(self):
+        """Given an empty main application file, When setting the file, Then it should raise a ValueError."""
+        # given: An empty main application file
+        main_app_file = ""
+
+        # when: Setting the main application file
+        with self.assertRaises(ValueError) as context:
+            self.sut.set_main_application_file(main_app_file)
+
+        # then: It should raise a ValueError for the empty main application file
+        self.assertEqual('Need to provide a non-empty string for changing the main application file', str(context.exception))
+
+    def test_build_with_missing_task_id_should_fail(self):
+        """Given no task_id, When building, Then it should raise a ValueError."""
+        # given: A builder without a task_id
+        builder = SparkK8sJobBuilder(
+            dag=self.mock_dag,
+            job_name=self.job_name,
+            docker_img=self.docker_img,
+            docker_img_tag=self.docker_img_tag,
+            namespace=self.namespace,
+            service_account=self.service_account,
+            main_class=self.main_class,
+            main_application_file=self.main_application_file,
+        )
+
+        # when: Building the operator
+        with self.assertRaises(ValueError) as context:
+            builder.build()
+        # then: building should raise ValueError for missing task_id
+        self.assertEqual('Need to provide a task id', str(context.exception))
+
+    def test_build_with_missing_dag_should_fail(self):
+        """Given no DAG, When building, Then it should raise a ValueError."""
+        # given: A builder without a DAG
+        builder = SparkK8sJobBuilder(
+            task_id=self.task_id,
+            job_name=self.job_name,
+            docker_img=self.docker_img,
+            docker_img_tag=self.docker_img_tag,
+            namespace=self.namespace,
+            service_account=self.service_account,
+            main_class=self.main_class,
+            main_application_file=self.main_application_file,
+        )
+
+        # when: Building the operator
+        with self.assertRaises(ValueError) as context:
+            builder.build()
+        # then: Building should raise ValueError for missing DAG
+        self.assertEqual('Need to provide a DAG', str(context.exception))
+
+    def test_build_with_missing_job_name_should_fail(self):
+        """Given no job_name, When building, Then it should raise a ValueError."""
+        # given: A builder without a job name
+        builder = SparkK8sJobBuilder(
+            task_id=self.task_id,
+            dag=self.mock_dag,
+            docker_img=self.docker_img,
+            docker_img_tag=self.docker_img_tag,
+            namespace=self.namespace,
+            service_account=self.service_account,
+            main_class=self.main_class,
+            main_application_file=self.main_application_file,
+        )
+
+        # when: Building the operator
+        with self.assertRaises(ValueError) as context:
+            print(f"... and job name final is {builder._job_spec['params']['jobName']}")
+            builder.build()
+
+        # then: it should raise ValueError for missing job name
+        self.assertEqual('Need to provide a job name', str(context.exception))
+
+    def test_valid_build_operator_should_succeed(self):
+        # given: A valid SparkK8sJobBuilder setup
+
+        # when: Building the operator
+        tasks = self.sut.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the operator is created with correct attributes
+        self.assertEqual('CustomizableSparkKubernetesOperator', spark_operator.operator_name)
+        self.assertEqual("spark_k8s_template.yaml", spark_operator.application_file)
+        self.assertEqual(self.job_name, spark_operator.params['jobName'])
+        self.assertEqual(self.docker_img, spark_operator.params['dockerImage'])
+        self.assertEqual(self.docker_img_tag, spark_operator.params['dockerImageTag'])
+        self.assertEqual(self.service_account, spark_operator.params['driver']['serviceAccount'])
+        self.assertEqual(self.service_account, spark_operator.params['executor']['serviceAccount'])
