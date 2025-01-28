@@ -631,13 +631,15 @@ class SparkK8sJobBuilder(object):
         return self._job_spec["params"]
 
 
-@task_group(group_id=SPARK_AIRFLOW_TASK_GROUP)
-def build_graph(*, builder: SparkK8sJobBuilder, use_task_group=False):
-    tasks = builder.build(use_task_group=use_task_group)
-    nr_tasks = len(tasks)
-    if nr_tasks == 1:
-        return tasks[0]
-    tasks[0] >> tasks[1]
+def build_task_group_partial_dag_graph(group_id: str):
+    @task_group(group_id=group_id)
+    def _build_graph(*, builder: SparkK8sJobBuilder) -> BaseOperator:
+        tasks = builder.build(use_task_group=True)
+        nr_tasks = len(tasks)
+        if nr_tasks == 1:
+            return tasks[0]
+        tasks[0] >> tasks[1]
+    return _build_graph
 
 
 def build_dag_params(
