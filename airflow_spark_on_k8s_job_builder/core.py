@@ -630,6 +630,9 @@ class SparkK8sJobBuilder(object):
     def get_job_params(self):
         return self._job_spec["params"]
 
+    def build_dag_params(self, extra_params: Dict[str, Any]) -> Dict[str, Any]:
+        return self.get_job_params() | extra_params
+
 
 def build_task_group_partial_dag_graph(group_id: str):
     @task_group(group_id=group_id)
@@ -640,9 +643,3 @@ def build_task_group_partial_dag_graph(group_id: str):
             return tasks[0]
         tasks[0] >> tasks[1]
     return _build_graph
-
-
-def build_dag_params(
-        *, spark_jobs_builder: SparkK8sJobBuilder, extra_params: Dict[str, Any]
-) -> Dict[str, Any]:
-    return spark_jobs_builder.get_job_params() | extra_params
