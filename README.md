@@ -55,3 +55,16 @@ pip-sync requirements.txt requirements-dev.txt
 ```
 
 *Note: The dev requirements are constrained by any dependencies in the requirements file.*
+
+### Releasing
+
+#### Releasing to test pypi
+
+Update the library's version in `setup.py`. This should build your app in `./dist` directory.
+
+Then:
+```shell
+pyenv activate airflowsparkk8sbuilder
+python -m build
+twine upload --repository testpypi dist/*
+```
