@@ -590,7 +590,7 @@ class SparkK8sJobBuilder(object):
         self._validate_dag()
         self._validate_job_spec()
 
-    def build(self, use_task_group: bool = False, **kwargs) -> List[BaseOperator]:
+    def build(self, **kwargs) -> List[BaseOperator]:
         """Constructs and returns the SparkKubernetesOperator instance."""
         self._validate_build()
 
@@ -609,14 +609,11 @@ class SparkK8sJobBuilder(object):
         )
 
         if self._use_sensor:
-            clear_task_id = (
-                f"{SPARK_AIRFLOW_TASK_GROUP}.{self._task_id}" if use_task_group else self._task_id
-            )
             sensor = SparkKubernetesSensor(
                 task_id="{}_monitor".format(self._task_id),
                 namespace=self._namespace,
                 application_name="{{ task_instance.xcom_pull(task_ids='"
-                                 + clear_task_id
+                                 + self._task_id
                                  + "')['metadata']['name'] }}",
                 dag=self._dag,
                 attach_log=True,
@@ -632,14 +629,3 @@ class SparkK8sJobBuilder(object):
 
     def build_dag_params(self, extra_params: Dict[str, Any]) -> Dict[str, Any]:
         return self.get_job_params() | extra_params
-
-
-def build_task_group_partial_dag_graph(group_id: str):
-    @task_group(group_id=group_id)
-    def _build_graph(*, builder: SparkK8sJobBuilder) -> BaseOperator:
-        tasks = builder.build(use_task_group=True)
-        nr_tasks = len(tasks)
-        if nr_tasks == 1:
-            return tasks[0]
-        tasks[0] >> tasks[1]
-    return _build_graph
