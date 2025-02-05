@@ -283,6 +283,7 @@ class SparkK8sJobBuilder(object):
             sensor_retry_delay_in_seconds: int = 60,
             retries: int = 0,
             use_sensor: bool = False,
+            update_xcom_sidecar_container: bool = False,
     ):
         self._job_spec = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
         self._retries = retries
@@ -296,6 +297,7 @@ class SparkK8sJobBuilder(object):
         self._job_arguments = job_arguments or []
         self._spark_version = spark_version
         self.set_spark_version(spark_version)
+        self._xcom_sidecar_container_updated = False
         if job_arguments:
             self.set_job_arguments(job_arguments)
         if namespace:
@@ -313,6 +315,8 @@ class SparkK8sJobBuilder(object):
             self.set_main_class(main_class)
         if main_application_file:
             self.set_main_application_file(main_application_file)
+        if update_xcom_sidecar_container:
+            self.setup_xcom_sidecar_container()
 
     def set_dag(self, dag: DAG):
         self._dag = dag
@@ -509,6 +513,53 @@ class SparkK8sJobBuilder(object):
         if not self._job_spec["params"]["executor"].get("secrets"):
             self._job_spec["params"]["executor"]["secrets"] = {}
         self._job_spec["params"]["executor"]["secrets"].update(conf)
+        return self
+
+    def setup_xcom_sidecar_container(self):
+        """
+            Sets up the xcom sidecar container
+            addressing issue: https://github.com/apache/airflow/issues/39184
+        """
+        if self._xcom_sidecar_container_updated:
+            return self
+        update_volume_mounts = {
+            "name": "xcom",
+            "mountPath": "/airflow/xcom",
+        }
+        update_sidecars = {
+            "image": "alpine",
+            "name": "airflow-xcom-sidecar",
+            "command": [
+                "sh",
+                "-c",
+                'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;',
+            ],
+            "volumeMounts": [
+                {
+                    "name": "xcom",
+                    "mountPath": "/airflow/xcom",
+                }
+            ],
+            "resources": {
+                "requests": {
+                    "cpu": "1m",
+                    "memory": "10Mi",
+                },
+            }
+        }
+        if not self._job_spec["params"]["driver"].get("volumeMounts"):
+            self._job_spec["params"]["driver"]["volumeMounts"] = []
+        existing_volume_mounts = self._job_spec["params"]["driver"].get("volumeMounts", [])
+        existing_volume_mounts.append(update_volume_mounts)
+        self._job_spec["params"]["driver"]["volumeMounts"] = existing_volume_mounts
+
+        if not self._job_spec["params"]["driver"].get("sidecars"):
+            self._job_spec["params"]["driver"]["sidecars"] = []
+        existing_sidecars = self._job_spec["params"]["driver"].get("sidecars", [])
+        existing_sidecars.append(update_sidecars)
+        self._job_spec["params"]["driver"]["sidecars"] = existing_sidecars
+
+        self._xcom_sidecar_container_updated = True
         return self
 
     def set_sensor_timeout(self, value: float) -> "SparkK8sJobBuilder":

@@ -42,6 +42,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             service_account=self.service_account,
             main_class=self.main_class,
             main_application_file=self.main_application_file,
+            use_sensor=False,
         )
 
     def test_spark_k8s_yaml_file_is_yaml_renderable(self):
@@ -304,3 +305,32 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(self.docker_img_tag, spark_operator.params['dockerImageTag'])
         self.assertEqual(self.service_account, spark_operator.params['driver']['serviceAccount'])
         self.assertEqual(self.service_account, spark_operator.params['executor']['serviceAccount'])
+
+    def test_setup_xcom_sidecar_container(self):
+        # given: a standard SUT
+
+        # when: Building the operator
+        builder = self.sut.setup_xcom_sidecar_container()
+
+        # then: it should correctly set up the xcom sidecar container
+        driver_spec = builder._job_spec['params']['driver']
+        self.assertIn('volumeMounts', driver_spec)
+        self.assertIn('sidecars', driver_spec)
+
+        volume_mounts = driver_spec['volumeMounts']
+        sidecars = driver_spec['sidecars']
+
+        self.assertEqual(len(volume_mounts), 1)
+        self.assertEqual(volume_mounts[0]['name'], 'xcom')
+        self.assertEqual(volume_mounts[0]['mountPath'], '/airflow/xcom')
+
+        self.assertEqual(len(sidecars), 1)
+        self.assertEqual(sidecars[0]['name'], 'airflow-xcom-sidecar')
+        self.assertEqual(sidecars[0]['image'], 'alpine')
+        self.assertEqual(sidecars[0]['command'], [
+            'sh', '-c', 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;'
+        ])
+        self.assertEqual(sidecars[0]['volumeMounts'][0]['name'], 'xcom')
+        self.assertEqual(sidecars[0]['volumeMounts'][0]['mountPath'], '/airflow/xcom')
+        self.assertEqual(sidecars[0]['resources']['requests']['cpu'], '1m')
+        self.assertEqual(sidecars[0]['resources']['requests']['memory'], '10Mi')

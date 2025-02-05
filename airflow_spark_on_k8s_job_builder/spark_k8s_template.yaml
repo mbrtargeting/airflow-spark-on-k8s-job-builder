@@ -46,6 +46,26 @@ spec:
     {% if params.driver.env|length %}
     env: {{ params.driver.env }}
     {% endif %}
+    {% if params.driver.volumeMounts|length %}
+    volumeMounts: {{ params.driver.volumeMounts }}
+    {% endif %}
+    {% if params.driver.sidecars|length %}
+    sidecars: {{ params.driver.sidecars }}
+    {% endif %}
+#    volumeMounts:
+#      - name: xcom
+#        mountPath: /airflow/xcom
+#    sidecars:
+#      - name: airflow-xcom-sidecar
+#        image: alpine
+#        command: [ "sh", "-c", 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;' ]
+#        volumeMounts:
+#          - name: xcom
+#            mountPath: /airflow/xcom
+#        resources:
+#          requests:
+#            cpu: "1m"
+#            memory: "10Mi"
   executor:
     {% if params.executor.affinity|length %}
     affinity: {{ params.executor.affinity }}
