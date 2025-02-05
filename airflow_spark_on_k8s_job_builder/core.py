@@ -320,6 +320,7 @@ class SparkK8sJobBuilder(object):
 
     def set_dag(self, dag: DAG):
         self._dag = dag
+        return self
 
     def set_job_name(self, name: str) -> "SparkK8sJobBuilder":
         """Sets custom job name for the Spark job."""
