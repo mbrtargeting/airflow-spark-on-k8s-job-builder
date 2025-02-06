@@ -69,6 +69,118 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual('SparkApplication', res.get('kind'))
         self.assertEqual('TODO_OVERRIDE_ME-mock-value-1', res.get('metadata').get('name'))
 
+    def test_spark_k8s_yaml_file_is_replaced_correctly(self):
+        # given: The default spark k8s app file
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+        template = Template(yaml_content)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        nodash = "mock-nodash-value"
+        params['ts_nodash'] = nodash
+        params['task_instance'] = {}
+        params['task_instance']['try_number'] = 1
+        # when: it renders with the default config into a yaml string
+        rendered_content = template.render(params)
+        print("rendered content {}", rendered_content)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+        print(res)
+        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
+        self.assertEqual('SparkApplication', res.get('kind'))
+        self.assertEqual(f'{self.job_name}-{nodash}-1', res.get('metadata').get('name'))
+        self.assertEqual(self.namespace, res.get('metadata').get('namespace'))
+
+        spec = res.get('spec')
+        # then: sparkConf spec should be correctly set
+        spark_conf = spec.get('sparkConf')
+        self.assertEqual('true', spark_conf.get('spark.kubernetes.driver.service.deleteOnTermination'))
+
+        # then: high level specs should be the defaults
+        self.assertEqual('Scala', spec.get('type'))
+        self.assertEqual('cluster', spec.get('mode'))
+        self.assertEqual('docker_img:1.2.3', spec.get('image'))
+
+        driver = spec.get('driver')
+        executor = spec.get('executor')
+        # then: service account should be the same for both
+        self.assertEqual(driver.get('serviceAccount'), self.service_account)
+        self.assertEqual(executor.get('serviceAccount'), self.service_account)
+
+        # then: driver & executor should have cores defined
+        self.assertEqual(driver.get('cores'), 1)
+        self.assertEqual(executor.get('cores'), 2)
+
+        # then: driver & executor should have memory defined
+        self.assertEqual(driver.get('memory'), '2g')
+        self.assertEqual(executor.get('memory'), '4g')
+
+        # then: executor should have nr of instances defined
+        self.assertEqual(executor.get('instances'), 2)
+
+        # then: the driver should not have the xcom sidecar container setup by default
+        self.assertIsNone(driver.get('sidecars'))
+        self.assertIsNone(driver.get('volumeMounts'))
+
+    def test_spark_k8s_yaml_file_add_xcom_sidecar_config_correctly(self):
+        # given: The default spark k8s app file
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+        template = Template(yaml_content)
+
+        # given a mutated builder spark spec template
+        self.sut.setup_xcom_sidecar_container()
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        nodash = "mock-nodash-value"
+        params['ts_nodash'] = nodash
+        params['task_instance'] = {}
+        params['task_instance']['try_number'] = 1
+        # when: it renders with the default config into a yaml string
+        rendered_content = template.render(params)
+        print("rendered content {}", rendered_content)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+        print(res)
+        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
+        self.assertEqual('SparkApplication', res.get('kind'))
+        self.assertEqual(f'{self.job_name}-{nodash}-1', res.get('metadata').get('name'))
+        self.assertEqual(self.namespace, res.get('metadata').get('namespace'))
+
+        spec = res.get('spec')
+        # then: sparkConf spec should be correctly set
+        spark_conf = spec.get('sparkConf')
+        self.assertEqual('true', spark_conf.get('spark.kubernetes.driver.service.deleteOnTermination'))
+
+        # then: high level specs should be the defaults
+        self.assertEqual('Scala', spec.get('type'))
+        self.assertEqual('cluster', spec.get('mode'))
+        self.assertEqual('docker_img:1.2.3', spec.get('image'))
+
+        driver = spec.get('driver')
+        executor = spec.get('executor')
+        # then: service account should be the same for both
+        self.assertEqual(driver.get('serviceAccount'), self.service_account)
+        self.assertEqual(executor.get('serviceAccount'), self.service_account)
+
+        # then: the driver should have the xcom sidecar container setup
+        self.assertEqual(len(driver.get('sidecars')), 1)
+        sidecars = driver.get('sidecars')[0]
+        self.assertEqual(sidecars.get('image'), 'alpine')
+        self.assertEqual(sidecars.get('name'), 'airflow-xcom-sidecar')
+        self.assertEqual(sidecars.get('volumeMounts')[0].get('name'), 'xcom')
+        self.assertEqual(sidecars.get('volumeMounts')[0].get('mountPath'), '/airflow/xcom')
+        self.assertEqual(sidecars.get('resources').get('requests').get('cpu'), '1m')
+        self.assertEqual(sidecars.get('resources').get('requests').get('memory'), '10Mi')
+        self.assertEqual(len(driver.get('volumeMounts')), 1)
+        volume_mounts = driver.get('volumeMounts')[0]
+        self.assertEqual(volume_mounts.get('name'), 'xcom')
+        self.assertEqual(volume_mounts.get('mountPath'), '/airflow/xcom')
+
     def test_set_driver_cores_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid value
