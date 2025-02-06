@@ -518,8 +518,27 @@ class SparkK8sJobBuilder(object):
 
     def setup_xcom_sidecar_container(self):
         """
-            Sets up the xcom sidecar container
-            addressing issue: https://github.com/apache/airflow/issues/39184
+            Sets up the xcom sidecar container in spark drive pod as a sidecar container, as such:
+            driver:
+               cores: 2
+
+               volumeMounts:
+                 - name: xcom
+                   mountPath: /airflow/xcom
+               sidecars:
+                 - name: airflow-xcom-sidecar
+                   image: alpine
+                   command: [ "sh", "-c", 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;' ]
+                   volumeMounts:
+                     - name: xcom
+                       mountPath: /airflow/xcom
+                   resources:
+                     requests:
+                       cpu: "1m"
+                       memory: "10Mi"
+
+            Addresses issue: https://github.com/apache/airflow/issues/39184
+
         """
         if self._xcom_sidecar_container_updated:
             return self
