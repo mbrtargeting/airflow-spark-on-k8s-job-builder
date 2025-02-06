@@ -64,7 +64,12 @@ Update the library's version in `setup.py`. This should build your app in `./dis
 
 Then:
 ```shell
+# activate venv
 pyenv activate airflowsparkk8sbuilder
+# clean up previous builds
+python setup.py clean --all
+# build a package
 python -m build
+# upload to test pypi
 twine upload --repository testpypi dist/*
 ```
