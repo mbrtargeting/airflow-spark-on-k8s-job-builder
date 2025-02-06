@@ -13,7 +13,6 @@ from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder, DEFAULT_SP
 class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def setUp(self):
-
         self.mock_dag = DAG(
             dag_id="test_dag",
             default_args={"retries": 3, 'retry_delay': timedelta(minutes=5)},
@@ -65,7 +64,9 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
-        assert True
+        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
+        self.assertEqual('SparkApplication', res.get('kind'))
+        self.assertEqual('TODO_OVERRIDE_ME-mock-value-1', res.get('metadata').get('name'))
 
     def test_set_driver_cores_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -226,7 +227,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             self.sut.set_main_application_file(main_app_file)
 
         # then: It should raise a ValueError for the empty main application file
-        self.assertEqual('Need to provide a non-empty string for changing the main application file', str(context.exception))
+        self.assertEqual('Need to provide a non-empty string for changing the main application file',
+                         str(context.exception))
 
     def test_build_with_missing_task_id_should_fail(self):
         """Given no task_id, When building, Then it should raise a ValueError."""
