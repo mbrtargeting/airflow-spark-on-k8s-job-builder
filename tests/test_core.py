@@ -28,6 +28,12 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.main_class = "my-class"
         self.main_application_file = "my-app-file"
         self.sut = self._get_sut()
+        repo_root = Path().resolve()
+        while not (repo_root / '.git').exists():
+            # recurse up to find the repo root independent of where PYTHON_PATH is set
+            repo_root = repo_root.parent
+
+        self.repo_root = repo_root
 
     def _get_sut(self) -> SparkK8sJobBuilder:
         """ factory for system under test """
@@ -45,13 +51,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         )
 
     def test_spark_k8s_yaml_file_is_yaml_renderable(self):
-        repo_root = Path().resolve()
-        while not (repo_root / '.git').exists():
-            # recurse up to find the repo root independent of where PYTHON_PATH is set
-            repo_root = repo_root.parent
-
         # given: The default spark k8s app file
-        yaml_file_path = repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
         with open(yaml_file_path, 'r') as file:
             yaml_content = file.read()
         template = Template(yaml_content)
