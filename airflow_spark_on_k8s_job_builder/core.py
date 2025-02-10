@@ -519,8 +519,12 @@ class SparkK8sJobBuilder(object):
     def setup_xcom_sidecar_container(self):
         """
             Sets up the xcom sidecar container in spark drive pod as a sidecar container, as such:
+
+            volumes:
+                - name: xcom
+                  emptyDir: {}
             driver:
-               cores: 2
+                [...]
 
                volumeMounts:
                  - name: xcom
@@ -542,6 +546,10 @@ class SparkK8sJobBuilder(object):
         """
         if self._xcom_sidecar_container_updated:
             return self
+        update_volumes = {
+            "name": "xcom",
+            "emptyDir": {},
+        }
         update_volume_mounts = {
             "name": "xcom",
             "mountPath": "/airflow/xcom",
@@ -578,6 +586,12 @@ class SparkK8sJobBuilder(object):
         existing_sidecars = self._job_spec["params"]["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
         self._job_spec["params"]["driver"]["sidecars"] = existing_sidecars
+
+        if not self._job_spec["params"].get("volumes"):
+            self._job_spec["params"]["volumes"] = []
+        existing_volumes = self._job_spec["params"].get("volumes", [])
+        existing_volumes.append(update_volumes)
+        self._job_spec["params"]["volumes"] = existing_volumes
 
         self._xcom_sidecar_container_updated = True
         return self

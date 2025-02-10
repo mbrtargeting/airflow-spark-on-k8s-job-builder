@@ -25,6 +25,9 @@ spec:
   {% endif %}
   restartPolicy:
     type: Never
+  {% if params.volumes|length %}
+  volumes: {{ params.volumes }}
+  {% endif %}
   driver:
     {% if params.driver.affinity|length %}
     affinity: {{ params.driver.affinity }}
