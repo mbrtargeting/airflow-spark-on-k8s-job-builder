@@ -325,7 +325,7 @@ class SparkK8sJobBuilder(object):
         """Sets custom job name for the Spark job."""
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for changing the job name")
-        self._job_spec["params"]["jobName"] = name
+        self.get_job_params()["jobName"] = name
         return self
 
     def set_namespace(self, name: str) -> "SparkK8sJobBuilder":
@@ -333,22 +333,22 @@ class SparkK8sJobBuilder(object):
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for changing the namespace")
         self._namespace = name
-        self._job_spec["params"]["namespace"] = name
+        self.get_job_params()["namespace"] = name
         return self
 
     def set_service_account(self, name: str) -> "SparkK8sJobBuilder":
         """Sets service account for the Spark job."""
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for changing the job name")
-        self._job_spec["params"]["driver"]["serviceAccount"] = name
-        self._job_spec["params"]["executor"]["serviceAccount"] = name
+        self.get_job_params()["driver"]["serviceAccount"] = name
+        self.get_job_params()["executor"]["serviceAccount"] = name
         return self
 
     def set_main_class(self, name: str) -> "SparkK8sJobBuilder":
         """Sets custom main class for the Spark job."""
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for changing the job main class")
-        self._job_spec["params"]["mainClass"] = name
+        self.get_job_params()["mainClass"] = name
         return self
 
     def set_main_application_file(self, name: str) -> "SparkK8sJobBuilder":
@@ -357,7 +357,7 @@ class SparkK8sJobBuilder(object):
             raise ValueError(
                 "Need to provide a non-empty string for changing the main application file"
             )
-        self._job_spec["params"]["mainApplicationFile"] = name
+        self.get_job_params()["mainApplicationFile"] = name
         return self
 
     def set_job_arguments(self, arguments: List[str]) -> "SparkK8sJobBuilder":
@@ -366,7 +366,7 @@ class SparkK8sJobBuilder(object):
             raise ValueError(
                 "Need to provide a non-empty List[String] for changing the job arguments"
             )
-        self._job_spec["params"]["jobArguments"] = arguments
+        self.get_job_params()["jobArguments"] = arguments
         return self
 
     def set_spark_version(self, version: str) -> "SparkK8sJobBuilder":
@@ -376,31 +376,31 @@ class SparkK8sJobBuilder(object):
                 "Need to provide a non-empty string for changing spark version; for example: 3.4.2"
             )
         self._spark_version = version
-        self._job_spec["params"]["sparkVersion"] = version
-        self._job_spec["params"]["driver"]["labels"]["version"] = version
+        self.get_job_params()["sparkVersion"] = version
+        self.get_job_params()["driver"]["labels"]["version"] = version
         return self
 
     def set_docker_img(self, name: str) -> "SparkK8sJobBuilder":
         """Sets docker image to be used."""
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for docker image")
-        self._job_spec["params"]["dockerImage"] = name
+        self.get_job_params()["dockerImage"] = name
         return self
 
     def set_docker_img_tag(self, name: str) -> "SparkK8sJobBuilder":
         """Sets docker image tag to be used."""
         if not name or len(name) == 0:
             raise ValueError("Need to provide a non-empty string for docker image")
-        self._job_spec["params"]["dockerImageTag"] = name
+        self.get_job_params()["dockerImageTag"] = name
         return self
 
     def set_driver_cores(self, cores: int) -> "SparkK8sJobBuilder":
         """Sets the number of driver cores."""
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of driver cores")
-        self._job_spec["params"]["driver"]["cores"] = cores
-        self._job_spec["params"]["driver"]["coreRequest"] = cores
-        self._job_spec["params"]["driver"]["coreLimit"] = cores
+        self.get_job_params()["driver"]["cores"] = cores
+        self.get_job_params()["driver"]["coreRequest"] = cores
+        self.get_job_params()["driver"]["coreLimit"] = cores
         return self
 
     def set_driver_memory(self, memory: str) -> "SparkK8sJobBuilder":
@@ -410,16 +410,16 @@ class SparkK8sJobBuilder(object):
                 "Need to provide a non-empty string for changing the driver memory value;"
                 " for example: 8g"
             )
-        self._job_spec["params"]["driver"]["memory"] = memory
+        self.get_job_params()["driver"]["memory"] = memory
         return self
 
     def set_executor_cores(self, cores: int) -> "SparkK8sJobBuilder":
         """Sets the number of executor cores."""
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of executor cores")
-        self._job_spec["params"]["executor"]["cores"] = cores
-        self._job_spec["params"]["executor"]["coreRequest"] = cores
-        self._job_spec["params"]["executor"]["coreLimit"] = cores
+        self.get_job_params()["executor"]["cores"] = cores
+        self.get_job_params()["executor"]["coreRequest"] = cores
+        self.get_job_params()["executor"]["coreLimit"] = cores
         return self
 
     def set_executor_memory(self, memory: str) -> "SparkK8sJobBuilder":
@@ -429,7 +429,7 @@ class SparkK8sJobBuilder(object):
                 "Need to provide a non-empty string for changing the executor memory value;"
                 " for example: 8g"
             )
-        self._job_spec["params"]["executor"]["memory"] = memory
+        self.get_job_params()["executor"]["memory"] = memory
         return self
 
     def set_executor_instances(self, instances: int) -> "SparkK8sJobBuilder":
@@ -438,58 +438,58 @@ class SparkK8sJobBuilder(object):
             raise ValueError(
                 "Need to provide a non-empty value for the number of executor instances"
             )
-        self._job_spec["params"]["executor"]["instances"] = instances
+        self.get_job_params()["executor"]["instances"] = instances
         return self
 
     def set_driver_labels(self, labels: Dict[str, str]) -> "SparkK8sJobBuilder":
         """Sets custom labels for the Spark job."""
-        self._job_spec["params"]["driver"]["labels"] = labels
+        self.get_job_params()["driver"]["labels"] = labels
         return self
 
     def update_driver_labels(self, labels: Dict[str, str]) -> "SparkK8sJobBuilder":
         """Updates specific keys with custom labels for the Spark job."""
         if not labels or len(labels.keys()) == 0:
             raise ValueError("Need to provide a non-empty map of job labels")
-        if not self._job_spec["params"]["driver"].get("labels"):
-            self._job_spec["params"]["driver"]["labels"] = {}
-        self._job_spec["params"]["driver"]["labels"].update(labels)
+        if not self.get_job_params()["driver"].get("labels"):
+            self.get_job_params()["driver"]["labels"] = {}
+        self.get_job_params()["driver"]["labels"].update(labels)
         return self
 
     def set_executor_labels(self, labels: Dict[str, str]) -> "SparkK8sJobBuilder":
         """Sets custom labels for the Spark job."""
-        self._job_spec["params"]["executor"]["labels"] = labels
+        self.get_job_params()["executor"]["labels"] = labels
         return self
 
     def update_executor_labels(self, labels: Dict[str, str]) -> "SparkK8sJobBuilder":
         """Updates specific keys with custom labels for the Spark job."""
         if not labels or len(labels.keys()) == 0:
             raise ValueError("Need to provide a non-empty map of job labels")
-        if not self._job_spec["params"]["executor"].get("labels"):
-            self._job_spec["params"]["executor"]["labels"] = {}
-        self._job_spec["params"]["executor"]["labels"].update(labels)
+        if not self.get_job_params()["executor"].get("labels"):
+            self.get_job_params()["executor"]["labels"] = {}
+        self.get_job_params()["executor"]["labels"].update(labels)
         return self
 
     def set_spark_conf(self, conf: Dict[str, Union[str, int, float]]) -> "SparkK8sJobBuilder":
         """Sets custom Spark configuration."""
         if not conf or len(conf.keys()) == 0:
             raise ValueError('Need to provide a non-empty map with spark conf')
-        if not self._job_spec["params"].get("sparkConf"):
-            self._job_spec["params"]["sparkConf"] = {}
-        self._job_spec["params"]["sparkConf"] = conf
+        if not self.get_job_params().get("sparkConf"):
+            self.get_job_params()["sparkConf"] = {}
+        self.get_job_params()["sparkConf"] = conf
         return self
 
     def update_spark_conf(self, conf: Dict[str, Union[str, int, float]]) -> "SparkK8sJobBuilder":
         """Updates specific keys with custom Spark configuration."""
-        if not self._job_spec["params"].get("sparkConf"):
-            self._job_spec["params"]["sparkConf"] = {}
-        self._job_spec["params"]["sparkConf"].update(conf)
+        if not self.get_job_params().get("sparkConf"):
+            self.get_job_params()["sparkConf"] = {}
+        self.get_job_params()["sparkConf"].update(conf)
         return self
 
     def set_image_pull_secrets(
             self, conf: Dict[str, Union[str, int, float]]
     ) -> "SparkK8sJobBuilder":
         """Sets custom docker image pull secrets."""
-        self._job_spec["params"]["imagePullSecrets"].update(conf)
+        self.get_job_params()["imagePullSecrets"].update(conf)
         return self
 
     def update_image_pull_secrets(
@@ -498,21 +498,21 @@ class SparkK8sJobBuilder(object):
         """Sets custom docker image pull secrets."""
         if not conf or len(conf.keys()) == 0:
             raise ValueError("Need to provide a non-empty map with image pull secrets")
-        if not self._job_spec["params"].get("imagePullSecrets"):
-            self._job_spec["params"]["imagePullSecrets"] = {}
-        self._job_spec["params"]["imagePullSecrets"].update(conf)
+        if not self.get_job_params().get("imagePullSecrets"):
+            self.get_job_params()["imagePullSecrets"] = {}
+        self.get_job_params()["imagePullSecrets"].update(conf)
         return self
 
     def set_secrets(self, conf: Dict[str, Union[str, int, float]]) -> "SparkK8sJobBuilder":
         """Sets custom secrets to be injected in the driver + executor nodes."""
         if not conf or len(conf.keys()) == 0:
             raise ValueError("Need to provide a non-empty map with secrets")
-        if not self._job_spec["params"]["driver"].get("secrets"):
-            self._job_spec["params"]["driver"]["secrets"] = {}
-        self._job_spec["params"]["driver"]["secrets"].update(conf)
-        if not self._job_spec["params"]["executor"].get("secrets"):
-            self._job_spec["params"]["executor"]["secrets"] = {}
-        self._job_spec["params"]["executor"]["secrets"].update(conf)
+        if not self.get_job_params()["driver"].get("secrets"):
+            self.get_job_params()["driver"]["secrets"] = {}
+        self.get_job_params()["driver"]["secrets"].update(conf)
+        if not self.get_job_params()["executor"].get("secrets"):
+            self.get_job_params()["executor"]["secrets"] = {}
+        self.get_job_params()["executor"]["secrets"].update(conf)
         return self
 
     def setup_xcom_sidecar_container(self):
@@ -574,23 +574,23 @@ class SparkK8sJobBuilder(object):
                 },
             }
         }
-        if not self._job_spec["params"]["driver"].get("volumeMounts"):
-            self._job_spec["params"]["driver"]["volumeMounts"] = []
-        existing_volume_mounts = self._job_spec["params"]["driver"].get("volumeMounts", [])
+        if not self.get_job_params()["driver"].get("volumeMounts"):
+            self.get_job_params()["driver"]["volumeMounts"] = []
+        existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(update_volume_mounts)
-        self._job_spec["params"]["driver"]["volumeMounts"] = existing_volume_mounts
+        self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self._job_spec["params"]["driver"].get("sidecars"):
-            self._job_spec["params"]["driver"]["sidecars"] = []
-        existing_sidecars = self._job_spec["params"]["driver"].get("sidecars", [])
+        if not self.get_job_params()["driver"].get("sidecars"):
+            self.get_job_params()["driver"]["sidecars"] = []
+        existing_sidecars = self.get_job_params()["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
-        self._job_spec["params"]["driver"]["sidecars"] = existing_sidecars
+        self.get_job_params()["driver"]["sidecars"] = existing_sidecars
 
-        if not self._job_spec["params"].get("volumes"):
-            self._job_spec["params"]["volumes"] = []
-        existing_volumes = self._job_spec["params"].get("volumes", [])
+        if not self.get_job_params().get("volumes"):
+            self.get_job_params()["volumes"] = []
+        existing_volumes = self.get_job_params().get("volumes", [])
         existing_volumes.append(update_volumes)
-        self._job_spec["params"]["volumes"] = existing_volumes
+        self.get_job_params()["volumes"] = existing_volumes
 
         self._xcom_sidecar_container_updated = True
         return self
@@ -613,7 +613,7 @@ class SparkK8sJobBuilder(object):
         """Sets environmental variables"""
         if not value or len(value) == 0:
             raise ValueError("Need to provide a non-empty map with environmental variables")
-        self._job_spec["params"]["driver"]["env"] = value
+        self.get_job_params()["driver"]["env"] = value
         return self
 
     def _validate_task_id(self):
@@ -622,8 +622,8 @@ class SparkK8sJobBuilder(object):
 
     def _validate_job_name(self):
         if (
-                not self._job_spec["params"]["jobName"]
-                or self._job_spec["params"]["jobName"] == OVERRIDE_ME
+                not self.get_job_params()["jobName"]
+                or self.get_job_params()["jobName"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a job name")
 
@@ -633,38 +633,38 @@ class SparkK8sJobBuilder(object):
 
     def _validate_job_spec(self):
         if (
-                not self._job_spec["params"]["dockerImage"]
-                or self._job_spec["params"]["dockerImage"] == OVERRIDE_ME
+                not self.get_job_params()["dockerImage"]
+                or self.get_job_params()["dockerImage"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image")
         if (
-                not self._job_spec["params"]["dockerImageTag"]
-                or self._job_spec["params"]["dockerImageTag"] == OVERRIDE_ME
+                not self.get_job_params()["dockerImageTag"]
+                or self.get_job_params()["dockerImageTag"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image tag")
         if (
-                not self._job_spec["params"]["namespace"]
-                or self._job_spec["params"]["namespace"] == OVERRIDE_ME
+                not self.get_job_params()["namespace"]
+                or self.get_job_params()["namespace"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a namespace")
         if (
-                not self._job_spec["params"]["mainClass"]
-                or self._job_spec["params"]["mainClass"] == OVERRIDE_ME
+                not self.get_job_params()["mainClass"]
+                or self.get_job_params()["mainClass"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image")
         if (
-                not self._job_spec["params"]["mainApplicationFile"]
-                or self._job_spec["params"]["mainApplicationFile"] == OVERRIDE_ME
+                not self.get_job_params()["mainApplicationFile"]
+                or self.get_job_params()["mainApplicationFile"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image")
         if (
-                not self._job_spec["params"]["driver"]["serviceAccount"]
-                or self._job_spec["params"]["driver"]["serviceAccount"] == OVERRIDE_ME
+                not self.get_job_params()["driver"]["serviceAccount"]
+                or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a service account")
         if (
-                not self._job_spec["params"]["executor"]["serviceAccount"]
-                or self._job_spec["params"]["driver"]["serviceAccount"] == OVERRIDE_ME
+                not self.get_job_params()["executor"]["serviceAccount"]
+                or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a service account")
 
@@ -680,7 +680,7 @@ class SparkK8sJobBuilder(object):
 
         task = CustomizableSparkKubernetesOperator(
             task_id=self._task_id,
-            params=self._job_spec["params"],
+            params=self.get_job_params(),
             dag=self._dag,
             namespace=self._namespace,
             application_file=self._application_file,
