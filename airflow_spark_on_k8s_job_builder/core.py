@@ -11,7 +11,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from airflow import DAG
-from airflow.decorators import task_group
 from airflow.models import BaseOperator
 from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
     SparkKubernetesOperator,
