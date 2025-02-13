@@ -176,6 +176,7 @@ DEFAULT_SPARK_CONF = {
     "spark.kubernetes.driver.service.deleteOnTermination": "true",
 }
 DEFAULT_SPARK_VERSION = "3.4.2"
+DEFAULT_NAMESPACE = "default"
 
 SPARK_JOB_SPEC_TEMPLATE = {
     "params": {
@@ -274,7 +275,7 @@ class SparkK8sJobBuilder(object):
             main_application_file: Optional[str] = None,
             job_arguments: Optional[List[str]] = None,
             spark_version: str = DEFAULT_SPARK_VERSION,
-            namespace: Optional[str] = None,
+            namespace: str = DEFAULT_NAMESPACE,
             service_account: Optional[str] = None,
             application_file: Optional[str] = None,
             task_timeout: Optional[timedelta] = timedelta(minutes=120),
@@ -297,11 +298,10 @@ class SparkK8sJobBuilder(object):
         self._spark_version = spark_version
         self.set_spark_version(spark_version)
         self._xcom_sidecar_container_updated = False
+        self._namespace = namespace
+        self.set_namespace(namespace)
         if job_arguments:
             self.set_job_arguments(job_arguments)
-        if namespace:
-            self._namespace = namespace
-            self.set_namespace(namespace)
         if job_name:
             self.set_job_name(job_name)
         if service_account:
