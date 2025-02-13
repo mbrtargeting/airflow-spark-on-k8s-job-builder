@@ -651,17 +651,17 @@ class SparkK8sJobBuilder(object):
                 not self.get_job_params()["mainClass"]
                 or self.get_job_params()["mainClass"] == OVERRIDE_ME
         ):
-            raise ValueError("Need to provide a docker image")
+            raise ValueError("Need to provide a docker image (`docker_img` param in builder constructor)")
         if (
                 not self.get_job_params()["mainApplicationFile"]
                 or self.get_job_params()["mainApplicationFile"] == OVERRIDE_ME
         ):
-            raise ValueError("Need to provide a docker image")
+            raise ValueError("Need to provide 'main_application_file' param in builder constructor")
         if (
                 not self.get_job_params()["driver"]["serviceAccount"]
                 or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
-            raise ValueError("Need to provide a service account")
+            raise ValueError("Need to provide a service account (`service_account` param in builder constructor)")
         if (
                 not self.get_job_params()["executor"]["serviceAccount"]
                 or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
