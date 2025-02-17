@@ -194,6 +194,8 @@ SPARK_JOB_SPEC_TEMPLATE = {
         "sparkConf": DEFAULT_SPARK_CONF,
         "jobArguments": [],
         "imagePullSecrets": {},
+        # https://kubeflow.github.io/spark-operator/docs/user-guide.html#specifying-application-dependencies
+        "deps": {},
         "driver": {
             "serviceAccount": OVERRIDE_ME,
             "cores": 1,
@@ -439,6 +441,27 @@ class SparkK8sJobBuilder(object):
                 "Need to provide a non-empty value for the number of executor instances"
             )
         self.get_job_params()["executor"]["instances"] = instances
+        return self
+
+    def get_deps(self) -> Dict[str, str]:
+        return self.get_job_params().get("deps", {})
+
+    def set_deps(self, deps: Dict[str, List[str]]) -> "SparkK8sJobBuilder":
+        """Sets dependencies for the Spark job."""
+        self.get_job_params()["deps"] = deps
+        return self
+
+    def update_deps(self, deps: Dict[str, List[str]]) -> "SparkK8sJobBuilder":
+        """Updates specific dependencies for the Spark job."""
+        if not deps or len(deps.keys()) == 0:
+            raise ValueError("Need to provide a non-empty map of dependencies")
+        accepted_values = {"jars", "files", "repositories", "packages", "excludePackages"}
+        if len(set(deps.keys()).difference(accepted_values)) > 0:
+            raise ValueError("Need to provide a map with keys one of the following values: 'jars', 'files', "
+                             "'packages', 'repositories', or 'excludePackages'")
+        if not self.get_deps():
+            self.get_job_params()["deps"] = {}
+        self.get_job_params()["deps"].update(deps)
         return self
 
     def set_driver_labels(self, labels: Dict[str, str]) -> "SparkK8sJobBuilder":
