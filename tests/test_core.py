@@ -297,6 +297,43 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected_conf["spark.dynamicAllocation.enabled"] = "false"
         self.assertEqual(expected_conf, self.sut._job_spec['params']['sparkConf'])
 
+    def test_get_dependencies_should_fail(self):
+        # given: a standard SUT with dependencies
+        expected_deps = {"invalid-key": ["dep1", "dep2"]}
+
+        # when: updating dependencies
+        # then: it should raise a ValueError for invalid keys dependencies
+        with self.assertRaises(ValueError):
+            self.sut.update_deps(expected_deps)
+
+    def test_get_dependencies_should_succeed(self):
+        # given: a standard SUT with dependencies
+        expected_deps = {"jars": ["dep1", "dep2"]}
+        self.sut.update_deps(expected_deps)
+
+        # when: getting dependencies
+        deps = self.sut.get_deps()
+
+        # then: it should return the correct list of dependencies
+        self.assertEqual(expected_deps, deps)
+
+    def test_update_dependencies_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: updating dependencies with an invalid value
+        # then: it should raise a ValueError for empty dependencies
+        with self.assertRaises(ValueError):
+            self.sut.update_deps([])
+
+    def test_update_dependencies_should_succeed(self):
+        # given: a standard SUT
+        expected_deps = {"files": ["dep1", "dep2"]}
+
+        # when: updating dependencies with a valid list
+        self.sut.update_deps(expected_deps)
+
+        # then: it should correctly update the list of dependencies
+        self.assertEqual(expected_deps, self.sut.get_deps())
+
     def test_set_main_class_should_succeed(self):
         """Given a valid main class name, When setting the main class, Then it should update the job spec."""
         # given: A valid main class name

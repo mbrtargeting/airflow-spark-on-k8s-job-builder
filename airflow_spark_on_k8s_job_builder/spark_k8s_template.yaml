@@ -9,6 +9,9 @@ metadata:
   namespace: "{{ params.namespace }}"
 spec:
   sparkConf: {{ params.sparkConf }}
+  {% if params.deps|length %}
+  deps: {{ params.deps }}
+  {% endif %}
   timeToLiveSeconds: 600
   {% if params.imagePullSecrets|length %}
   imagePullSecrets: {{ params.imagePullSecrets }}
