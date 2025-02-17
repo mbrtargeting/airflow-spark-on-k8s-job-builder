@@ -39,7 +39,6 @@ spec:
     annotations: {{ params.driver.annotations }}
     {% endif %}
     cores: {{ params.driver.cores }}
-    coreRequest: "{{ params.driver.coreRequest }}"
     coreLimit: "{{ params.driver.coreLimit }}"
     memory: "{{ params.driver.memory }}"
     {% if params.driver.labels|length %}
@@ -64,7 +63,6 @@ spec:
     {% endif %}
     cores: {{ params.executor.cores }}
     instances: {{ params.executor.instances }}
-    coreRequest: "{{ params.executor.coreRequest }}"
     coreLimit: "{{ params.executor.coreLimit }}"
     memory: "{{ params.executor.memory }}"
     {% if params.executor.annotations|length %}

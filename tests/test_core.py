@@ -221,10 +221,54 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
     def test_set_executor_cores_should_succeed(self):
         # given: a standard SUT
         # when: Setting SUT with valid cores value
-        expected = 2
+        expected = 4
         self.sut.set_executor_cores(expected)
         # then: It should correctly assign that value of cores
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
+        # then: It should also automatically change cores limit
+        self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
+
+    def test_set_executor_cores_limit_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid value
+        # then: It should raise a ValueError for invalid value
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_cores_limit(0)
+
+    def test_set_executor_cores_limit_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid cores value
+        expected = 4
+        self.sut.set_executor_cores_limit(expected)
+        # then: It should correctly assign that value of cores
+        self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
+
+    def test_validate_cores_with_defaults_should_succeed(self):
+        # given: a standard SUT
+        # then: It should correctly validate the cores
+        self.sut._validate_cores()
+
+    def test_validate_cores_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with cores value
+        self.sut.set_executor_cores(2)
+        self.sut.set_executor_cores_limit(4)
+
+        # then: It should have updated cores
+        self.assertEqual(2, self.sut.get_executor_cores())
+        # then: It should have updated cores limit
+        self.assertEqual(4, self.sut.get_executor_cores_limit())
+        # then: It should correctly validate the cores
+        self.sut._validate_cores()
+
+    def test_validate_cores_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with cores value
+        self.sut.set_executor_cores(2)
+        self.sut.set_executor_cores_limit(1)
+        # then: It should raise a ValueError for empty value
+        with self.assertRaises(ValueError):
+            self.sut._validate_cores()
 
     def test_set_executor_memory_with_invalid_value_should_fail(self):
         # given: a standard SUT

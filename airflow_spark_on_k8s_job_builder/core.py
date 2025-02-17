@@ -8,7 +8,7 @@ import copy
 import logging
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from airflow import DAG
 from airflow.models import BaseOperator
@@ -199,7 +199,6 @@ SPARK_JOB_SPEC_TEMPLATE = {
         "driver": {
             "serviceAccount": OVERRIDE_ME,
             "cores": 1,
-            "coreRequest": "1",
             "coreLimit": "1",
             "memory": "2g",
             "affinity": {
@@ -237,7 +236,6 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "instances": 2,
             "serviceAccount": OVERRIDE_ME,
             "cores": 2,
-            "coreRequest": "2",
             "coreLimit": "2",
             "memory": "4g",
             "affinity": {
@@ -396,12 +394,26 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["dockerImageTag"] = name
         return self
 
+    def get_driver_cores(self):
+        return self.get_job_params()["driver"]["cores"]
+
     def set_driver_cores(self, cores: int) -> "SparkK8sJobBuilder":
         """Sets the number of driver cores."""
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of driver cores")
         self.get_job_params()["driver"]["cores"] = cores
-        self.get_job_params()["driver"]["coreRequest"] = cores
+        min_max_cores = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(), "driver")
+        if min_max_cores[0] is not None and min_max_cores[1] is not None and min_max_cores[0] > min_max_cores[1]:
+            self.set_driver_cores_limit(cores)
+        return self
+
+    def get_driver_cores_limit(self):
+        return self.get_job_params()["driver"]["coreLimit"]
+
+    def set_driver_cores_limit(self, cores: int) -> "SparkK8sJobBuilder":
+        """Sets the number of driver cores."""
+        if not cores:
+            raise ValueError("Need to provide a non-empty value for the number of driver cores")
         self.get_job_params()["driver"]["coreLimit"] = cores
         return self
 
@@ -415,12 +427,26 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["driver"]["memory"] = memory
         return self
 
+    def get_executor_cores(self):
+        return self.get_job_params()["executor"]["cores"]
+
     def set_executor_cores(self, cores: int) -> "SparkK8sJobBuilder":
         """Sets the number of executor cores."""
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of executor cores")
         self.get_job_params()["executor"]["cores"] = cores
-        self.get_job_params()["executor"]["coreRequest"] = cores
+        min_max_cores = self._cast_cores_to_int(self.get_executor_cores(), self.get_executor_cores_limit(), "executor")
+        if min_max_cores[0] is not None and min_max_cores[1] is not None and min_max_cores[0] > min_max_cores[1]:
+            self.set_executor_cores_limit(cores)
+        return self
+
+    def get_executor_cores_limit(self):
+        return self.get_job_params()["executor"]["coreLimit"]
+
+    def set_executor_cores_limit(self, cores: int) -> "SparkK8sJobBuilder":
+        """Sets the number of executor cores."""
+        if not cores:
+            raise ValueError("Need to provide a non-empty (max) value for the number of executor cores")
         self.get_job_params()["executor"]["coreLimit"] = cores
         return self
 
@@ -690,6 +716,36 @@ class SparkK8sJobBuilder(object):
                 or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a service account")
+
+        self._validate_cores()
+
+    def _validate_cores(self):
+        driver_cores = self._cast_cores_to_int(
+            self.get_driver_cores(), self.get_driver_cores_limit(), "driver"
+        )
+        if driver_cores[0] is not None and driver_cores[1] is not None \
+                and driver_cores[0] > driver_cores[1]:
+            raise ValueError("Driver cores should be less than or equal to the limit of cores")
+
+        executor_cores = self._cast_cores_to_int(
+            self.get_executor_cores(), self.get_executor_cores_limit(), "executor"
+        )
+        if executor_cores[0] is not None and executor_cores[1] is not None \
+                and executor_cores[0] > executor_cores[1]:
+            raise ValueError("Executor cores should be less than or equal to the limit of cores")
+
+    @staticmethod
+    def _cast_cores_to_int(requested_cores: str, cores_limit: str, node_type: str) -> Tuple[
+        Optional[int], Optional[int]
+    ]:
+        try:
+            requested_cores = int(requested_cores)
+            max_cores = int(cores_limit)
+            return requested_cores, max_cores
+        except ValueError as e:
+            logging.warning(f"Unable to compare requested {node_type} cores against max {node_type}"
+                            "core number: %s", e)
+            return None, None
 
     def _validate_build(self):
         self._validate_task_id()
