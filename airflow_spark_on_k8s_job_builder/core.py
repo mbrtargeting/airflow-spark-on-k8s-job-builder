@@ -419,6 +419,44 @@ class SparkK8sJobBuilder(object):
         self.set_executor_tolerations(tolerations)
         return self
 
+    def get_driver_affinity(self):
+        return self.get_job_params()["driver"]["affinity"]
+
+    def set_driver_affinity(self, affinity: Dict[str, Any]) -> "SparkK8sJobBuilder":
+        """Sets affinity for the driver."""
+        if not affinity or len(affinity) == 0:
+            raise ValueError("Need to provide a non-empty map of affinity")
+        self.get_job_params()["driver"]["affinity"] = affinity
+        return self
+
+    def update_driver_affinity(self, affinity: Dict[str, Any]) -> "SparkK8sJobBuilder":
+        """Updates specific affinity for the driver."""
+        if not affinity or len(affinity.keys()) == 0:
+            raise ValueError("Need to provide a non-empty map of affinity")
+        if not self.get_job_params()["driver"].get("affinity"):
+            self.get_job_params()["driver"]["affinity"] = {}
+        self.get_job_params()["driver"]["affinity"].update(affinity)
+        return self
+
+    def get_executor_affinity(self):
+        return self.get_job_params()["executor"]["affinity"]
+
+    def set_executor_affinity(self, affinity: Dict[str, Any]) -> "SparkK8sJobBuilder":
+        """Sets affinity for the executor."""
+        if not affinity or len(affinity) == 0:
+            raise ValueError("Need to provide a non-empty map of affinity")
+        self.get_job_params()["executor"]["affinity"] = affinity
+        return self
+
+    def update_executor_affinity(self, affinity: Dict[str, Any]) -> "SparkK8sJobBuilder":
+        """Updates specific affinity for the executor."""
+        if not affinity or len(affinity.keys()) == 0:
+            raise ValueError("Need to provide a non-empty map of affinity")
+        if not self.get_job_params()["executor"].get("affinity"):
+            self.get_job_params()["executor"]["affinity"] = {}
+        self.get_job_params()["executor"]["affinity"].update(affinity)
+        return self
+
     def get_driver_annotations(self):
         return self.get_job_params()["driver"]["annotations"]
 

@@ -298,6 +298,198 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should correctly assign that value of instances
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['instances'])
 
+    def test_set_driver_affinity_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting driver affinity with an invalid value
+        # then: it should raise a ValueError for empty affinity
+        with self.assertRaises(ValueError):
+            self.sut.set_driver_affinity({})
+
+    def test_set_driver_affinity_should_succeed(self):
+        # given: a standard SUT
+        expected_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+
+        # when: setting driver affinity with a valid map
+        self.sut.set_driver_affinity(expected_affinity)
+
+        # then: it should correctly set the driver affinity
+        self.assertEqual(expected_affinity, self.sut.get_job_params()["driver"]["affinity"])
+
+    def test_update_driver_affinity_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: updating driver affinity with an invalid value
+        # then: it should raise a ValueError for empty affinity
+        with self.assertRaises(ValueError):
+            self.sut.update_driver_affinity({})
+
+    def test_update_driver_affinity_should_succeed(self):
+        # given: a standard SUT
+        initial_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        self.sut.set_driver_affinity(initial_affinity)
+        additional_affinity = {
+            "podAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [
+                    {
+                        "labelSelector": {
+                            "matchExpressions": [
+                                {"key": "key2", "operator": "In", "values": ["value2"]}
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+
+        # when: updating driver affinity with a valid map
+        self.sut.update_driver_affinity(additional_affinity)
+
+        # then: it should correctly update the driver affinity
+        expected_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            },
+            "podAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [
+                    {
+                        "labelSelector": {
+                            "matchExpressions": [
+                                {"key": "key2", "operator": "In", "values": ["value2"]}
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected_affinity, self.sut.get_job_params()["driver"]["affinity"])
+
+    def test_set_executor_affinity_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting executor affinity with an invalid value
+        # then: it should raise a ValueError for empty affinity
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_affinity({})
+
+    def test_set_executor_affinity_should_succeed(self):
+        # given: a standard SUT
+        expected_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+
+        # when: setting executor affinity with a valid map
+        self.sut.set_executor_affinity(expected_affinity)
+
+        # then: it should correctly set the executor affinity
+        self.assertEqual(expected_affinity, self.sut.get_job_params()["executor"]["affinity"])
+
+    def test_update_executor_affinity_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: updating executor affinity with an invalid value
+        # then: it should raise a ValueError for empty affinity
+        with self.assertRaises(ValueError):
+            self.sut.update_executor_affinity({})
+
+    def test_update_executor_affinity_should_succeed(self):
+        # given: a standard SUT
+        initial_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        self.sut.set_executor_affinity(initial_affinity)
+        additional_affinity = {
+            "podAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [
+                    {
+                        "labelSelector": {
+                            "matchExpressions": [
+                                {"key": "key2", "operator": "In", "values": ["value2"]}
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+
+        # when: updating executor affinity with a valid map
+        self.sut.update_executor_affinity(additional_affinity)
+
+        # then: it should correctly update the executor affinity
+        expected_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "key1", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            },
+            "podAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [
+                    {
+                        "labelSelector": {
+                            "matchExpressions": [
+                                {"key": "key2", "operator": "In", "values": ["value2"]}
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected_affinity, self.sut.get_job_params()["executor"]["affinity"])
+
     def test_set_driver_tolerations_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: setting driver tolerations with an invalid value
