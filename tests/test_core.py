@@ -298,6 +298,54 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should correctly assign that value of instances
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['instances'])
 
+    def test_set_driver_tolerations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting driver tolerations with an invalid value
+        # then: it should raise a ValueError for empty tolerations
+        with self.assertRaises(ValueError):
+            self.sut.set_driver_tolerations([])
+
+    def test_set_driver_tolerations_should_succeed(self):
+        # given: a standard SUT
+        expected_tolerations = [
+            {
+                "key": "key1",
+                "operator": "Equal",
+                "value": "value1",
+                "effect": "NoSchedule"
+            }
+        ]
+
+        # when: setting driver tolerations with a valid list
+        self.sut.set_driver_tolerations(expected_tolerations)
+
+        # then: it should correctly set the list of driver tolerations
+        self.assertEqual(expected_tolerations, self.sut.get_job_params()["driver"]["tolerations"])
+
+    def test_set_executor_tolerations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting executor tolerations with an invalid value
+        # then: it should raise a ValueError for empty tolerations
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_tolerations([])
+
+    def test_set_executor_tolerations_should_succeed(self):
+        # given: a standard SUT
+        expected_tolerations = [
+            {
+                "key": "key2",
+                "operator": "Equal",
+                "value": "value2",
+                "effect": "NoExecute"
+            }
+        ]
+
+        # when: setting executor tolerations with a valid list
+        self.sut.set_executor_tolerations(expected_tolerations)
+
+        # then: it should correctly set the list of executor tolerations
+        self.assertEqual(expected_tolerations, self.sut.get_job_params()["executor"]["tolerations"])
+
     def test_update_driver_labels_should_not_accept_empty_dict_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid labels

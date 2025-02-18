@@ -394,6 +394,31 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["dockerImageTag"] = name
         return self
 
+    def get_driver_tolerations(self):
+        self.get_job_params()["driver"].get("tolerations")
+
+    def set_driver_tolerations(self, tolerations: List[Dict[str, str]]) -> "SparkK8sJobBuilder":
+        """Sets tolerations for the driver."""
+        if not tolerations or len(tolerations) == 0:
+            raise ValueError("Need to provide a non-empty list of tolerations")
+        self.get_job_params()["driver"]["tolerations"] = tolerations
+        return self
+
+    def get_executor_tolerations(self):
+        self.get_job_params()["driver"].get("tolerations")
+
+    def set_executor_tolerations(self, tolerations: List[Dict[str, str]]) -> "SparkK8sJobBuilder":
+        """Sets tolerations for the executor."""
+        if not tolerations or len(tolerations) == 0:
+            raise ValueError("Need to provide a non-empty list of tolerations")
+        self.get_job_params()["executor"]["tolerations"] = tolerations
+        return self
+
+    def set_tolerations(self, tolerations: List[Dict[str, str]]) -> "SparkK8sJobBuilder":
+        self.set_driver_tolerations(tolerations)
+        self.set_executor_tolerations(tolerations)
+        return self
+
     def get_driver_cores(self):
         return self.get_job_params()["driver"]["cores"]
 
