@@ -419,6 +419,54 @@ class SparkK8sJobBuilder(object):
         self.set_executor_tolerations(tolerations)
         return self
 
+    def get_driver_annotations(self):
+        return self.get_job_params()["driver"]["annotations"]
+
+    def set_driver_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        """Sets annotations for the driver."""
+        if not annotations or len(annotations) == 0:
+            raise ValueError("Need to provide a non-empty map of annotations")
+        self.get_job_params()["driver"]["annotations"] = annotations
+        return self
+
+    def update_driver_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        """Updates specific annotations for the driver."""
+        if not annotations or len(annotations.keys()) == 0:
+            raise ValueError("Need to provide a non-empty map of annotations")
+        if not self.get_job_params()["driver"].get("annotations"):
+            self.get_job_params()["driver"]["annotations"] = {}
+        self.get_job_params()["driver"]["annotations"].update(annotations)
+        return self
+
+    def get_executor_annotations(self):
+        return self.get_job_params()["executor"]["annotations"]
+
+    def set_executor_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        """Sets annotations for the executor."""
+        if not annotations or len(annotations) == 0:
+            raise ValueError("Need to provide a non-empty map of annotations")
+        self.get_job_params()["executor"]["annotations"] = annotations
+        return self
+
+    def update_executor_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        """Updates specific annotations for the executor."""
+        if not annotations or len(annotations.keys()) == 0:
+            raise ValueError("Need to provide a non-empty map of annotations")
+        if not self.get_job_params()["executor"].get("annotations"):
+            self.get_job_params()["executor"]["annotations"] = {}
+        self.get_job_params()["executor"]["annotations"].update(annotations)
+        return self
+
+    def set_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        self.set_driver_annotations(annotations)
+        self.set_executor_annotations(annotations)
+        return self
+
+    def update_annotations(self, annotations: Dict[str, str]) -> "SparkK8sJobBuilder":
+        self.update_driver_annotations(annotations)
+        self.update_executor_annotations(annotations)
+        return self
+
     def get_driver_cores(self):
         return self.get_job_params()["driver"]["cores"]
 

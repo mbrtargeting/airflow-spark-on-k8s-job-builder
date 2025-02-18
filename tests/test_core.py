@@ -346,6 +346,80 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should correctly set the list of executor tolerations
         self.assertEqual(expected_tolerations, self.sut.get_job_params()["executor"]["tolerations"])
 
+    def test_set_driver_annotations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting driver annotations with an invalid value
+        # then: it should raise a ValueError for empty annotations
+        with self.assertRaises(ValueError):
+            self.sut.set_driver_annotations({})
+
+    def test_set_driver_annotations_should_succeed(self):
+        # given: a standard SUT
+        expected_annotations = {"annotation1": "value1"}
+
+        # when: setting driver annotations with a valid map
+        self.sut.set_driver_annotations(expected_annotations)
+
+        # then: it should correctly set the list of driver annotations
+        self.assertEqual(expected_annotations, self.sut.get_job_params()["driver"]["annotations"])
+
+    def test_update_driver_annotations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: updating driver annotations with an invalid value
+        # then: it should raise a ValueError for empty annotations
+        with self.assertRaises(ValueError):
+            self.sut.update_driver_annotations({})
+
+    def test_update_driver_annotations_should_succeed(self):
+        # given: a standard SUT
+        initial_annotations = {"annotation1": "value1"}
+        self.sut.set_driver_annotations(initial_annotations)
+        additional_annotations = {"annotation2": "value2"}
+
+        # when: updating driver annotations with a valid map
+        self.sut.update_driver_annotations(additional_annotations)
+
+        # then: it should correctly update the list of driver annotations
+        expected_annotations = {"annotation1": "value1", "annotation2": "value2"}
+        self.assertEqual(expected_annotations, self.sut.get_job_params()["driver"]["annotations"])
+
+    def test_set_executor_annotations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: setting executor annotations with an invalid value
+        # then: it should raise a ValueError for empty annotations
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_annotations({})
+
+    def test_set_executor_annotations_should_succeed(self):
+        # given: a standard SUT
+        expected_annotations = {"annotation1": "value1"}
+
+        # when: setting executor annotations with a valid map
+        self.sut.set_executor_annotations(expected_annotations)
+
+        # then: it should correctly set the list of executor annotations
+        self.assertEqual(expected_annotations, self.sut.get_job_params()["executor"]["annotations"])
+
+    def test_update_executor_annotations_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: updating executor annotations with an invalid value
+        # then: it should raise a ValueError for empty annotations
+        with self.assertRaises(ValueError):
+            self.sut.update_executor_annotations({})
+
+    def test_update_executor_annotations_should_succeed(self):
+        # given: a standard SUT
+        initial_annotations = {"annotation1": "value1"}
+        self.sut.set_executor_annotations(initial_annotations)
+        additional_annotations = {"annotation2": "value2"}
+
+        # when: updating executor annotations with a valid map
+        self.sut.update_executor_annotations(additional_annotations)
+
+        # then: it should correctly update the list of executor annotations
+        expected_annotations = {"annotation1": "value1", "annotation2": "value2"}
+        self.assertEqual(expected_annotations, self.sut.get_job_params()["executor"]["annotations"])
+
     def test_update_driver_labels_should_not_accept_empty_dict_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid labels
