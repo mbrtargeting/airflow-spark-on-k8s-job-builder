@@ -35,6 +35,9 @@ spec:
     {% if params.driver.affinity|length %}
     affinity: {{ params.driver.affinity }}
     {% endif %}
+    {% if params.driver.tolerations|length %}
+    tolerations: {{ params.driver.tolerations }}
+    {% endif %}
     {% if params.driver.annotations|length %}
     annotations: {{ params.driver.annotations }}
     {% endif %}
@@ -65,6 +68,9 @@ spec:
     instances: {{ params.executor.instances }}
     coreLimit: "{{ params.executor.coreLimit }}"
     memory: "{{ params.executor.memory }}"
+    {% if params.executor.tolerations|length %}
+    tolerations: {{ params.executor.tolerations }}
+    {% endif %}
     {% if params.executor.annotations|length %}
     annotations: {{ params.executor.annotations }}
     {% endif %}

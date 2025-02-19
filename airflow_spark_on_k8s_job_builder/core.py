@@ -201,6 +201,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "cores": 1,
             "coreLimit": "1",
             "memory": "2g",
+            "tolerations": [],
             "affinity": {
                 "nodeAffinity": {
                     "requiredDuringSchedulingIgnoredDuringExecution": {
@@ -238,6 +239,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "cores": 2,
             "coreLimit": "2",
             "memory": "4g",
+            "tolerations": [],
             "affinity": {
                 "nodeAffinity": {
                     "requiredDuringSchedulingIgnoredDuringExecution": {
