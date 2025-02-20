@@ -5,7 +5,7 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.utils import yaml
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
 from typing import Any, Dict
 
 from airflow_spark_on_k8s_job_builder.constants import DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
@@ -44,6 +44,15 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         params['task_instance']['try_number'] = 1
         return params
 
+    def _load_yaml_template(self):
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+            print(yaml_content)
+        env = Environment(undefined=StrictUndefined)
+        template = env.from_string(yaml_content)
+        return template
+
     def _get_sut(self) -> SparkK8sJobBuilder:
         """ factory for system under test """
         return SparkK8sJobBuilder(
@@ -61,10 +70,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_is_yaml_renderable(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
+
         params = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
         params['ts_nodash'] = "mock-value"
         params['task_instance'] = {}
@@ -80,10 +87,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_is_replaced_correctly(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
         nodash = "mock-nodash-value"
@@ -135,10 +139,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_add_xcom_sidecar_config_correctly(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         # given a mutated builder spark spec template
         self.sut.setup_xcom_sidecar_container()
@@ -221,10 +222,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_set_driver_memory_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         # when: Setting SUT with valid memory value
         expected = "8000g"
@@ -263,10 +261,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_set_executor_cores_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         # when: Setting SUT with valid cores value
         expected = 50
@@ -554,10 +549,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_affinity_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         # when: setting driver & executor affinities
         expected_driver_affinity = {
