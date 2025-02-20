@@ -84,3 +84,6 @@ spec:
     {% if params.executor.volumeMounts|length %}
     volumeMounts: {{ params.executor.volumeMounts }}
     {% endif %}
+    {% if params.executor.sidecars|length %}
+    sidecars: {{ params.executor.sidecars }}
+    {% endif %}
