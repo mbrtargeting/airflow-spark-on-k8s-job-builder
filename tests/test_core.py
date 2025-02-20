@@ -5,9 +5,11 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.utils import yaml
-from jinja2 import Template
+from jinja2 import Environment, StrictUndefined
+from typing import Any, Dict
 
-from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder, DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+from airflow_spark_on_k8s_job_builder.constants import DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder
 
 
 class TestSparkK8sJobBuilder(unittest.TestCase):
@@ -35,6 +37,22 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         self.repo_root = repo_root
 
+    @staticmethod
+    def _add_airflow_default_inject_jinja_params(params: Dict[str, Any], nodash: str = "mock-nodash-value"):
+        params['ts_nodash'] = nodash
+        params['task_instance'] = {}
+        params['task_instance']['try_number'] = 1
+        return params
+
+    def _load_yaml_template(self):
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+            print(yaml_content)
+        env = Environment(undefined=StrictUndefined)
+        template = env.from_string(yaml_content)
+        return template
+
     def _get_sut(self) -> SparkK8sJobBuilder:
         """ factory for system under test """
         return SparkK8sJobBuilder(
@@ -52,10 +70,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_is_yaml_renderable(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
+
         params = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
         params['ts_nodash'] = "mock-value"
         params['task_instance'] = {}
@@ -71,10 +87,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_is_replaced_correctly(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
         nodash = "mock-nodash-value"
@@ -126,19 +139,15 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_spark_k8s_yaml_file_add_xcom_sidecar_config_correctly(self):
         # given: The default spark k8s app file
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-        template = Template(yaml_content)
+        template = self._load_yaml_template()
 
         # given a mutated builder spark spec template
         self.sut.setup_xcom_sidecar_container()
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
-        nodash = "mock-nodash-value"
-        params['ts_nodash'] = nodash
-        params['task_instance'] = {}
-        params['task_instance']['try_number'] = 1
+        nodash = "xcom-sidecar-nodash-value"
+        params = self._add_airflow_default_inject_jinja_params(params, nodash=nodash)
+
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
         print("rendered content {}", rendered_content)
@@ -211,6 +220,28 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should correctly assign that value of memory
         self.assertEqual(expected, self.sut._job_spec['params']['driver']['memory'])
 
+    def test_set_driver_memory_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: Setting SUT with valid memory value
+        expected = "8000g"
+        self.sut.set_driver_memory(expected)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+        # then: it should have mutated driver memory value
+
+        result = res.get('spec', {}).get('driver', {}).get('memory')
+
+        # then: service account should be the same for both
+        self.assertEqual(expected, result)
+
     def test_set_executor_cores_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid value
@@ -227,6 +258,32 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
         # then: It should also automatically change cores limit
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
+
+    def test_set_executor_cores_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: Setting SUT with valid cores value
+        expected = 50
+        self.sut.set_executor_cores(expected)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        executor = res.get('spec', {}).get('executor', {})
+
+        # then: It should correctly assign that value of cores
+        executor_cores = executor.get('cores')
+        self.assertEqual(expected, executor_cores)
+
+        # then: It should also automatically change cores limit
+        executor_cores_limit = executor.get('coreLimit')
+        self.assertEqual(expected, int(executor_cores_limit))
 
     def test_set_executor_cores_limit_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -489,6 +546,59 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             }
         }
         self.assertEqual(expected_affinity, self.sut.get_job_params()["executor"]["affinity"])
+
+    def test_affinity_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: setting driver & executor affinities
+        expected_driver_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "driver", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        expected_executor_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "executor", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        self.sut.set_driver_affinity(expected_driver_affinity)
+        self.sut.set_executor_affinity(expected_executor_affinity)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        driver = res.get('spec', {}).get('driver', {})
+        executor = res.get('spec', {}).get('executor', {})
+
+        # then: It should correctly assign that value of affinities
+        driver_affinity = driver.get('affinity')
+        self.assertEqual(expected_driver_affinity, driver_affinity)
+
+        # then: It should correctly assign that value of affinities
+        executor_affinity = executor.get('affinity')
+        self.assertEqual(expected_executor_affinity, executor_affinity)
 
     def test_set_driver_tolerations_with_invalid_value_should_fail(self):
         # given: a standard SUT
