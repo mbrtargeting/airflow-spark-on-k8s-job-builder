@@ -81,3 +81,6 @@ spec:
     {% if params.executor.secrets|length %}
     secrets: {{ params.executor.secrets }}
     {% endif %}
+    {% if params.executor.volumeMounts|length %}
+    volumeMounts: {{ params.executor.volumeMounts }}
+    {% endif %}
