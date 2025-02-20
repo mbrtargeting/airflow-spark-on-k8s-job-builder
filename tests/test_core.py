@@ -7,7 +7,8 @@ from airflow import DAG
 from airflow.utils import yaml
 from jinja2 import Template
 
-from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder, DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+from airflow_spark_on_k8s_job_builder.constants import DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder
 
 
 class TestSparkK8sJobBuilder(unittest.TestCase):
