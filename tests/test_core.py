@@ -261,6 +261,35 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should also automatically change cores limit
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
 
+    def test_set_executor_cores_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+        template = Template(yaml_content)
+
+        # when: Setting SUT with valid cores value
+        expected = 50
+        self.sut.set_executor_cores(expected)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        executor = res.get('spec', {}).get('executor', {})
+
+        # then: It should correctly assign that value of cores
+        executor_cores = executor.get('cores')
+        self.assertEqual(expected, executor_cores)
+
+        # then: It should also automatically change cores limit
+        executor_cores_limit = executor.get('coreLimit')
+        self.assertEqual(expected, int(executor_cores_limit))
+
     def test_set_executor_cores_limit_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid value
