@@ -69,12 +69,15 @@ SPARK_JOB_SPEC_TEMPLATE = {
         "imagePullSecrets": {},
         # https://kubeflow.github.io/spark-operator/docs/user-guide.html#specifying-application-dependencies
         "deps": {},
+        "volumes": [],
         "driver": {
             "serviceAccount": OVERRIDE_ME,
             "cores": 1,
             "coreLimit": "1",
             "memory": "2g",
             "tolerations": [],
+            "volumeMounts": [],
+            "sidecars": [],
             "affinity": {
                 "nodeAffinity": {
                     "requiredDuringSchedulingIgnoredDuringExecution": {
@@ -113,6 +116,8 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "coreLimit": "2",
             "memory": "4g",
             "tolerations": [],
+            "volumeMounts": [],
+            "sidecars": [],
             "affinity": {
                 "nodeAffinity": {
                     "requiredDuringSchedulingIgnoredDuringExecution": {
