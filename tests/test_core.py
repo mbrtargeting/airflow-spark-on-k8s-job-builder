@@ -552,6 +552,62 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         }
         self.assertEqual(expected_affinity, self.sut.get_job_params()["executor"]["affinity"])
 
+    def test_affinity_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
+        with open(yaml_file_path, 'r') as file:
+            yaml_content = file.read()
+        template = Template(yaml_content)
+
+        # when: setting driver & executor affinities
+        expected_driver_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "driver", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        expected_executor_affinity = {
+            "nodeAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                        {
+                            "matchExpressions": [
+                                {"key": "executor", "operator": "In", "values": ["value1"]}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        self.sut.set_driver_affinity(expected_driver_affinity)
+        self.sut.set_executor_affinity(expected_executor_affinity)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        driver = res.get('spec', {}).get('driver', {})
+        executor = res.get('spec', {}).get('executor', {})
+
+        # then: It should correctly assign that value of affinities
+        driver_affinity = driver.get('affinity')
+        self.assertEqual(expected_driver_affinity, driver_affinity)
+
+        # then: It should correctly assign that value of affinities
+        executor_affinity = executor.get('affinity')
+        self.assertEqual(expected_executor_affinity, executor_affinity)
+
     def test_set_driver_tolerations_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: setting driver tolerations with an invalid value
