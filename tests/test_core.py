@@ -6,6 +6,7 @@ from pathlib import Path
 from airflow import DAG
 from airflow.utils import yaml
 from jinja2 import Template
+from typing import Any, Dict
 
 from airflow_spark_on_k8s_job_builder.constants import DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
 from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder
@@ -35,6 +36,13 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             repo_root = repo_root.parent
 
         self.repo_root = repo_root
+
+    @staticmethod
+    def _add_airflow_default_inject_jinja_params(params: Dict[str, Any], nodash: str = "mock-nodash-value"):
+        params['ts_nodash'] = nodash
+        params['task_instance'] = {}
+        params['task_instance']['try_number'] = 1
+        return params
 
     def _get_sut(self) -> SparkK8sJobBuilder:
         """ factory for system under test """
@@ -136,10 +144,9 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.sut.setup_xcom_sidecar_container()
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
-        nodash = "mock-nodash-value"
-        params['ts_nodash'] = nodash
-        params['task_instance'] = {}
-        params['task_instance']['try_number'] = 1
+        nodash = "xcom-sidecar-nodash-value"
+        params = self._add_airflow_default_inject_jinja_params(params, nodash=nodash)
+
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
         print("rendered content {}", rendered_content)
