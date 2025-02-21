@@ -635,8 +635,6 @@ class SparkK8sJobBuilder(object):
             retries=self._retries,
             do_xcom_push=True,
             execution_timeout=self._task_timeout,
-            template_field_ds="{{ ds }}",
-            template_field_ts="{{ ts }}",
             **kwargs,
         )
 
