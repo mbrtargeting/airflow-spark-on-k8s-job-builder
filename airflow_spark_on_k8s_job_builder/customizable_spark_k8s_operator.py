@@ -97,16 +97,19 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
         self.data_interval_end = kwargs.pop("data_interval_end", "{{ data_interval_end }}")
         super().__init__(application_file=application_file, **kwargs)
 
-    def execute(self, context: Context):
-        template = Template(self.application_file)
+    def _re_render_application_file_template(self) -> None:
         template_context = {
             "ds": self.template_field_ds,
             "ts": self.template_field_ts,
             "data_interval_end": self.data_interval_end,
         }
+        template = Template(self.application_file)
         rendered_template = template.render(template_context)
         self.application_file = rendered_template
         logging.info(f"application file rendered is: \n{self.application_file}")
+
+    def execute(self, context: Context):
+        self._re_render_application_file_template()
         return super().execute(context)
 
 
