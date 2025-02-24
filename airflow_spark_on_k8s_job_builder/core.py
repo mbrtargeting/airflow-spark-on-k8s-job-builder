@@ -97,9 +97,6 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
 
     template_fields: Sequence[str] = (
         "application_file",
-        "template_field_ds",
-        "template_field_ts",
-        "data_interval_end",
     )
 
     def __init__(
