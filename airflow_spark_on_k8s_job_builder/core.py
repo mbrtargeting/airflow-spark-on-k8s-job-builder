@@ -97,32 +97,19 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
 
     template_fields: Sequence[str] = (
         "application_file",
-        "template_field_ds",
-        "template_field_ts",
-        "data_interval_end",
     )
 
     def __init__(
             self,
             *,
             application_file: str,
-            template_field_ds: str,
-            template_field_ts: str,
             **kwargs,
     ):
-        self.template_field_ds = template_field_ds
-        self.template_field_ts = template_field_ts
-        self.data_interval_end = kwargs.pop("data_interval_end", "{{ data_interval_end }}")
         super().__init__(application_file=application_file, **kwargs)
 
     def execute(self, context: Context):
         template = Template(self.application_file)
-        template_context = {
-            "ds": self.template_field_ds,
-            "ts": self.template_field_ts,
-            "data_interval_end": self.data_interval_end,
-        }
-        rendered_template = template.render(template_context)
+        rendered_template = template.render(context)
         self.application_file = rendered_template
         logging.info(f"application file rendered is: \n{self.application_file}")
         return super().execute(context)
@@ -877,8 +864,6 @@ class SparkK8sJobBuilder(object):
             retries=self._retries,
             do_xcom_push=True,
             execution_timeout=self._task_timeout,
-            template_field_ds="{{ ds }}",
-            template_field_ts="{{ ts }}",
             **kwargs,
         )
 
