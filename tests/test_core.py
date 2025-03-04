@@ -242,6 +242,58 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: service account should be the same for both
         self.assertEqual(expected, result)
 
+    def test_set_driver_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: Setting SUT with valid cores value
+        expected = 50
+        self.sut.set_driver_cores(expected)
+        self.sut.set_driver_cores_limit(None)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        driver = res.get('spec', {}).get('driver', {})
+
+        # then: It should correctly assign that value of cores
+        driver_cores = driver.get('cores')
+        self.assertEqual(expected, driver_cores)
+
+        # then: It should not also automatically change cores limit
+        driver_cores_limit = driver.get('coreLimit', None)
+        self.assertEqual(None, driver_cores_limit, "core limit should not be set unless specifically requested")
+
+
+    def test_set_driver_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: Setting SUT with valid cores
+        expected = 50
+        self.sut.set_driver_cores(expected)
+        self.sut.set_driver_cores_limit(expected + 10)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+        # then: it should have mutated driver CPU settings
+
+        cores = res.get('spec', {}).get('driver', {}).get('cores')
+        self.assertEqual(expected, cores, "driver cores request should be set")
+
+        cores_limit = res.get('spec', {}).get('driver', {}).get('coreLimit')
+        self.assertEqual(str(expected + 10), cores_limit, "driver cores limit should be set")
+
     def test_set_executor_cores_with_invalid_value_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid value
@@ -256,16 +308,17 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.sut.set_executor_cores(expected)
         # then: It should correctly assign that value of cores
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
-        # then: It should also automatically change cores limit
-        self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
+        # then: It should not also automatically change cores limit
+        self.assertEqual(None, self.sut._job_spec['params']['executor'].get('coreLimit', None))
 
-    def test_set_executor_cores_should_produce_correct_spark_k8s_yaml_file(self):
+    def test_set_executor_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
         template = self._load_yaml_template()
 
         # when: Setting SUT with valid cores value
         expected = 50
         self.sut.set_executor_cores(expected)
+        self.sut.set_executor_cores_limit(None)
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
         params = self._add_airflow_default_inject_jinja_params(params)
@@ -281,16 +334,51 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         executor_cores = executor.get('cores')
         self.assertEqual(expected, executor_cores)
 
-        # then: It should also automatically change cores limit
-        executor_cores_limit = executor.get('coreLimit')
-        self.assertEqual(expected, int(executor_cores_limit))
+        # then: It should not also automatically change cores limit
+        executor_cores_limit = executor.get('coreLimit', None)
+        self.assertEqual(None, executor_cores_limit, "core limit should not be set unless specifically requested")
 
-    def test_set_executor_cores_limit_with_invalid_value_should_fail(self):
+
+    def test_set_executor_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(self):
+        # given: The default spark k8s app file
+        template = self._load_yaml_template()
+
+        # when: Setting SUT with valid cores value
+        expected = 50
+        self.sut.set_executor_cores(expected)
+        self.sut.set_executor_cores_limit(expected + 10)
+
+        params = {"params": copy.deepcopy(self.sut.get_job_params())}
+        params = self._add_airflow_default_inject_jinja_params(params)
+        # when: airflow renders the result job params from builder
+        rendered_content = template.render(params)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(rendered_content)
+
+        executor = res.get('spec', {}).get('executor', {})
+
+        # then: It should correctly assign that value of cores
+        executor_cores = executor.get('cores')
+        self.assertEqual(expected, executor_cores, "executor requested cores should be set")
+
+        # then: It should correctly set the cores limit
+        executor_cores_limit = executor.get('coreLimit', None)
+        self.assertEqual(str(expected + 10), executor_cores_limit, "executor core limit should be set")
+
+    def test_set_executor_cores_limit_to_zero_should_fail(self):
         # given: a standard SUT
         # when: Setting SUT with invalid value
         # then: It should raise a ValueError for invalid value
         with self.assertRaises(ValueError):
             self.sut.set_executor_cores_limit(0)
+
+    def test_set_executor_cores_limit_to_none_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid cores value
+        self.sut.set_executor_cores_limit(None)
+        # then: It should correctly assign that value of cores
+        self.assertEqual(None, self.sut._job_spec['params']['executor']['coreLimit'])
 
     def test_set_executor_cores_limit_should_succeed(self):
         # given: a standard SUT

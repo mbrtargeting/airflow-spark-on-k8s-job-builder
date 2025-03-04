@@ -73,7 +73,6 @@ SPARK_JOB_SPEC_TEMPLATE = {
         "driver": {
             "serviceAccount": OVERRIDE_ME,
             "cores": 1,
-            "coreLimit": "1",
             "memory": "2g",
             "tolerations": [],
             "volumeMounts": [],
@@ -113,7 +112,6 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "instances": 2,
             "serviceAccount": OVERRIDE_ME,
             "cores": 2,
-            "coreLimit": "2",
             "memory": "4g",
             "tolerations": [],
             "volumeMounts": [],
