@@ -277,7 +277,7 @@ class SparkK8sJobBuilder(object):
         return self
 
     def get_driver_cores_limit(self):
-        return self.get_job_params()["driver"].get("coreLimit", None)
+        return self.get_job_params()["driver"].get("coreLimit")
 
     def set_driver_cores_limit(self, cores: Optional[int]) -> "SparkK8sJobBuilder":
         """Sets the number of driver cores."""
@@ -310,7 +310,7 @@ class SparkK8sJobBuilder(object):
         return self
 
     def get_executor_cores_limit(self):
-        return self.get_job_params()["executor"].get("coreLimit", None)
+        return self.get_job_params()["executor"].get("coreLimit")
 
     def set_executor_cores_limit(self, cores: Optional[int]) -> "SparkK8sJobBuilder":
         """Sets the number of executor cores."""

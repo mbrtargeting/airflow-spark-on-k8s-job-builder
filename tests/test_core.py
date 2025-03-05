@@ -266,7 +266,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(expected, driver_cores)
 
         # then: It should not also automatically change cores limit
-        driver_cores_limit = driver.get('coreLimit', None)
+        driver_cores_limit = driver.get('coreLimit')
         self.assertEqual(None, driver_cores_limit, "core limit should not be set unless specifically requested")
 
 
@@ -309,7 +309,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should correctly assign that value of cores
         self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
         # then: It should not also automatically change cores limit
-        self.assertEqual(None, self.sut._job_spec['params']['executor'].get('coreLimit', None))
+        self.assertEqual(None, self.sut._job_spec['params']['executor'].get('coreLimit'))
 
     def test_set_executor_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
@@ -335,7 +335,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(expected, executor_cores)
 
         # then: It should not also automatically change cores limit
-        executor_cores_limit = executor.get('coreLimit', None)
+        executor_cores_limit = executor.get('coreLimit')
         self.assertEqual(None, executor_cores_limit, "core limit should not be set unless specifically requested")
 
 
@@ -363,7 +363,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(expected, executor_cores, "executor requested cores should be set")
 
         # then: It should correctly set the cores limit
-        executor_cores_limit = executor.get('coreLimit', None)
+        executor_cores_limit = executor.get('coreLimit')
         self.assertEqual(str(expected + 10), executor_cores_limit, "executor core limit should be set")
 
     def test_set_executor_cores_limit_to_zero_should_fail(self):
