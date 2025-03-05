@@ -271,18 +271,18 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of driver cores")
         self.get_job_params()["driver"]["cores"] = cores
-        min_max_cores = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(), "driver")
-        if min_max_cores[0] is not None and min_max_cores[1] is not None and min_max_cores[0] > min_max_cores[1]:
+        [requested_cores, max_cores] = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(), "driver")
+        if requested_cores is not None and max_cores is not None and requested_cores > max_cores:
             self.set_driver_cores_limit(cores)
         return self
 
     def get_driver_cores_limit(self):
-        return self.get_job_params()["driver"]["coreLimit"]
+        return self.get_job_params()["driver"].get("coreLimit")
 
-    def set_driver_cores_limit(self, cores: int) -> "SparkK8sJobBuilder":
+    def set_driver_cores_limit(self, cores: Optional[int]) -> "SparkK8sJobBuilder":
         """Sets the number of driver cores."""
-        if not cores:
-            raise ValueError("Need to provide a non-empty value for the number of driver cores")
+        if cores is not None and cores < 1:
+            raise ValueError("Driver core limit must be either None or at least 1")
         self.get_job_params()["driver"]["coreLimit"] = cores
         return self
 
@@ -304,18 +304,18 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of executor cores")
         self.get_job_params()["executor"]["cores"] = cores
-        min_max_cores = self._cast_cores_to_int(self.get_executor_cores(), self.get_executor_cores_limit(), "executor")
-        if min_max_cores[0] is not None and min_max_cores[1] is not None and min_max_cores[0] > min_max_cores[1]:
+        [requested_cores, cores_limit] = self._cast_cores_to_int(self.get_executor_cores(), self.get_executor_cores_limit(), "executor")
+        if requested_cores is not None and cores_limit is not None and requested_cores > cores_limit:
             self.set_executor_cores_limit(cores)
         return self
 
     def get_executor_cores_limit(self):
-        return self.get_job_params()["executor"]["coreLimit"]
+        return self.get_job_params()["executor"].get("coreLimit")
 
-    def set_executor_cores_limit(self, cores: int) -> "SparkK8sJobBuilder":
+    def set_executor_cores_limit(self, cores: Optional[int]) -> "SparkK8sJobBuilder":
         """Sets the number of executor cores."""
-        if not cores:
-            raise ValueError("Need to provide a non-empty (max) value for the number of executor cores")
+        if cores is not None and cores < 1:
+            raise ValueError("executor core limit must be None or at least 1")
         self.get_job_params()["executor"]["coreLimit"] = cores
         return self
 
@@ -589,18 +589,18 @@ class SparkK8sJobBuilder(object):
         self._validate_cores()
 
     def _validate_cores(self):
-        driver_cores = self._cast_cores_to_int(
+        driver_requested_cores, driver_core_limit = self._cast_cores_to_int(
             self.get_driver_cores(), self.get_driver_cores_limit(), "driver"
         )
-        if driver_cores[0] is not None and driver_cores[1] is not None \
-                and driver_cores[0] > driver_cores[1]:
+        if driver_requested_cores is not None and driver_core_limit is not None \
+                and driver_requested_cores > driver_core_limit:
             raise ValueError("Driver cores should be less than or equal to the limit of cores")
 
-        executor_cores = self._cast_cores_to_int(
+        executor_requested_cores, executor_core_limit = self._cast_cores_to_int(
             self.get_executor_cores(), self.get_executor_cores_limit(), "executor"
         )
-        if executor_cores[0] is not None and executor_cores[1] is not None \
-                and executor_cores[0] > executor_cores[1]:
+        if executor_requested_cores is not None and executor_core_limit is not None \
+                and executor_requested_cores > executor_core_limit:
             raise ValueError("Executor cores should be less than or equal to the limit of cores")
 
     @staticmethod
@@ -608,8 +608,8 @@ class SparkK8sJobBuilder(object):
         Optional[int], Optional[int]
     ]:
         try:
-            requested_cores = int(requested_cores)
-            max_cores = int(cores_limit)
+            requested_cores = int(requested_cores) if requested_cores is not None else None
+            max_cores = int(cores_limit) if cores_limit is not None else None
             return requested_cores, max_cores
         except ValueError as e:
             logging.warning(f"Unable to compare requested {node_type} cores against max {node_type}"

@@ -42,7 +42,9 @@ spec:
     annotations: {{ params.driver.annotations }}
     {% endif %}
     cores: {{ params.driver.cores }}
+    {% if params.driver.coreLimit is defined and params.driver.coreLimit is not none %}
     coreLimit: "{{ params.driver.coreLimit }}"
+    {% endif %}
     memory: "{{ params.driver.memory }}"
     {% if params.driver.labels|length %}
     labels: {{ params.driver.labels }}
@@ -66,7 +68,9 @@ spec:
     {% endif %}
     cores: {{ params.executor.cores }}
     instances: {{ params.executor.instances }}
+    {% if params.executor.coreLimit is defined and params.executor.coreLimit is not none %}
     coreLimit: "{{ params.executor.coreLimit }}"
+    {% endif %}
     memory: "{{ params.executor.memory }}"
     {% if params.executor.tolerations|length %}
     tolerations: {{ params.executor.tolerations }}
