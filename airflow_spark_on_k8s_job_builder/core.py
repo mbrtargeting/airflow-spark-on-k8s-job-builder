@@ -6,6 +6,7 @@
 
 import copy
 import logging
+import pathlib
 from datetime import timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -13,10 +14,10 @@ from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
 
-from airflow_spark_on_k8s_job_builder.constants import (
+from .constants  import (
     DEFAULT_SPARK_VERSION, DEFAULT_NAMESPACE, SPARK_JOB_SPEC_TEMPLATE, OVERRIDE_ME,
 )
-from airflow_spark_on_k8s_job_builder.customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
+from .customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
 
 SPARK_AIRFLOW_TASK_GROUP = "spark_task_group"
 
@@ -43,6 +44,11 @@ class SparkK8sJobBuilder(object):
             use_sensor: bool = False,
             update_xcom_sidecar_container: bool = False,
     ):
+
+        if application_file is None:
+            with open((pathlib.Path(__file__).parent / "default_spark_k8s_template.yaml"), 'r') as default_template_file:
+                application_file = default_template_file.read()
+
         self._job_spec = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
         self._retries = retries
         self._task_id = task_id
@@ -50,7 +56,7 @@ class SparkK8sJobBuilder(object):
         self._dag = dag
         self._sensor_timeout: float = sensor_timeout_in_seconds
         self._sensor_retry_delay_seconds: int = sensor_retry_delay_in_seconds
-        self._application_file = application_file or "spark_k8s_template.yaml"
+        self._application_file = application_file
         self._task_timeout = task_timeout
         self._job_arguments = job_arguments or []
         self._spark_version = spark_version
@@ -604,7 +610,7 @@ class SparkK8sJobBuilder(object):
             raise ValueError("Executor cores should be less than or equal to the limit of cores")
 
     @staticmethod
-    def _cast_cores_to_int(requested_cores: str, cores_limit: str, node_type: str) -> Tuple[
+    def _cast_cores_to_int(requested_cores: Optional[int], cores_limit: Optional[int], node_type: str) -> Tuple[
         Optional[int], Optional[int]
     ]:
         try:
