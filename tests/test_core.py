@@ -45,10 +45,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         return params
 
     def _load_yaml_template(self):
-        yaml_file_path = self.repo_root / "airflow_spark_on_k8s_job_builder" / self.sut._application_file
-        with open(yaml_file_path, 'r') as file:
-            yaml_content = file.read()
-            print(yaml_content)
+        yaml_content = self.sut._application_file
         env = Environment(undefined=StrictUndefined)
         template = env.from_string(yaml_content)
         return template
@@ -1007,7 +1004,6 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         # then: Assert the operator is created with correct attributes
         self.assertEqual('CustomizableSparkKubernetesOperator', spark_operator.operator_name)
-        self.assertEqual("spark_k8s_template.yaml", spark_operator.application_file)
         self.assertEqual(self.job_name, spark_operator.params['jobName'])
         self.assertEqual(self.docker_img, spark_operator.params['dockerImage'])
         self.assertEqual(self.docker_img_tag, spark_operator.params['dockerImageTag'])
