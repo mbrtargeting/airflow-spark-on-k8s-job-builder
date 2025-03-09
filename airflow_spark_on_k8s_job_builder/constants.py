@@ -133,7 +133,10 @@ SPARK_JOB_SPEC_TEMPLATE = {
                     ],
                 },
             },
-            "annotations": {},
+            "annotations": {
+                "karpenter.sh/do-not-evict": "true",
+                "karpenter.sh/do-not-consolidate": "true",
+            },
             "labels": {},
             "secrets": {},
         },
