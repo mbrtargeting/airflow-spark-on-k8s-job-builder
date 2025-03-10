@@ -103,6 +103,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "annotations": {
                 "karpenter.sh/do-not-evict": "true",
                 "karpenter.sh/do-not-consolidate": "true",
+                "karpenter.sh/do-not-disrupt": "true",
             },
             "labels": {"version": "3.4.2"},
             "secrets": {},
@@ -136,6 +137,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
             "annotations": {
                 "karpenter.sh/do-not-evict": "true",
                 "karpenter.sh/do-not-consolidate": "true",
+                "karpenter.sh/do-not-disrupt": "true",
             },
             "labels": {},
             "secrets": {},
