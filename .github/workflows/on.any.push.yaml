@@ -1,0 +1,40 @@
+name: Test on push
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9.13
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9.13
+
+      - name: Install dependencies
+        id: install-dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install gcc build-essential libsasl2-dev -y
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        id: test
+        run: |
+          export PYTHONPATH="${PWD}/airflow_spark_on_k8s_job_builder:$PYTHONPATH"
+          pytest
