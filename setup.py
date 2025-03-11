@@ -11,7 +11,7 @@ setup(
     url='https://github.com/yourusername/my_library',
     packages=find_packages(),
     package_data={
-        'airflow_spark_on_k8s_job_builder': ["spark_k8s_template.yaml"]
+        'airflow_spark_on_k8s_job_builder': ["default_spark_k8s_template.yaml"]
     },
     include_package_data=True,
     install_requires=[],
