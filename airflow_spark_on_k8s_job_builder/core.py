@@ -14,7 +14,7 @@ from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
 
-from .constants  import (
+from .constants import (
     DEFAULT_SPARK_VERSION, DEFAULT_NAMESPACE, SPARK_JOB_SPEC_TEMPLATE, OVERRIDE_ME,
 )
 from .customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
@@ -46,7 +46,8 @@ class SparkK8sJobBuilder(object):
     ):
 
         if application_file is None:
-            with open((pathlib.Path(__file__).parent / "default_spark_k8s_template.yaml"), 'r') as default_template_file:
+            with open((pathlib.Path(__file__).parent / "default_spark_k8s_template.yaml"),
+                      'r') as default_template_file:
                 application_file = default_template_file.read()
 
         self._job_spec = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
@@ -277,7 +278,8 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of driver cores")
         self.get_job_params()["driver"]["cores"] = cores
-        [requested_cores, max_cores] = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(), "driver")
+        [requested_cores, max_cores] = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(),
+                                                               "driver")
         if requested_cores is not None and max_cores is not None and requested_cores > max_cores:
             self.set_driver_cores_limit(cores)
         return self
@@ -310,7 +312,8 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of executor cores")
         self.get_job_params()["executor"]["cores"] = cores
-        [requested_cores, cores_limit] = self._cast_cores_to_int(self.get_executor_cores(), self.get_executor_cores_limit(), "executor")
+        [requested_cores, cores_limit] = self._cast_cores_to_int(self.get_executor_cores(),
+                                                                 self.get_executor_cores_limit(), "executor")
         if requested_cores is not None and cores_limit is not None and requested_cores > cores_limit:
             self.set_executor_cores_limit(cores)
         return self
@@ -438,6 +441,49 @@ class SparkK8sJobBuilder(object):
             self.get_job_params()["executor"]["secrets"] = {}
         self.get_job_params()["executor"]["secrets"].update(conf)
         return self
+
+    def add_global_persistent_volume(
+            self,
+            volume_name: str,
+            claim_name: str,
+            mount_path: str,
+            readonly: bool = False,
+    ) -> "SparkK8sJobBuilder":
+        """Adds a global persistent volume mounted to the driver and all executors"""
+        if not self.get_job_params().get("volumes"):
+            self.get_job_params()["volumes"] = []
+        existing_volumes = self.get_job_params().get("volumes", [])
+
+        volume_config = {
+            'name': volume_name,
+            'persistentVolumeClaim': {
+                'claimName': claim_name
+            }
+        }
+
+        existing_volumes.append(volume_config)
+        self.get_job_params()["volumes"] = existing_volumes
+
+        volume_mount_config = {
+            'name': volume_name,
+            'mountPath': mount_path,
+            'readOnly': readonly
+        }
+
+        if not self.get_job_params()["driver"].get("volumeMounts"):
+            self.get_job_params()["driver"]["volumeMounts"] = []
+        existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
+        existing_volume_mounts.append(volume_mount_config)
+        self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
+
+        if not self.get_job_params()["executor"].get("volumeMounts"):
+            self.get_job_params()["executor"]["volumeMounts"] = []
+        existing_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
+        existing_volume_mounts.append(volume_mount_config)
+        self.get_job_params()["executor"]["volumeMounts"] = existing_volume_mounts
+
+        return self
+
 
     def setup_xcom_sidecar_container(self):
         """

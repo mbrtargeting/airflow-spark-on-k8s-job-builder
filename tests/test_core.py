@@ -1038,3 +1038,36 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(sidecars[0]['volumeMounts'][0]['mountPath'], '/airflow/xcom')
         self.assertEqual(sidecars[0]['resources']['requests']['cpu'], '1m')
         self.assertEqual(sidecars[0]['resources']['requests']['memory'], '10Mi')
+
+    def test_global_volume_mount(self):
+        # given: A valid SparkK8sJobBuilder setup
+
+        # when: Building the operator
+        builder = self.sut
+
+        builder.add_global_persistent_volume(
+            'spark-logs',
+            'spark-logs-s3-pvc',
+            '/tmp/spark/logs',
+            True,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the operator is created with correct volume config
+        self.assertEqual([{
+            'name': 'spark-logs',
+            'persistentVolumeClaim': {
+                'claimName': 'spark-logs-s3-pvc'
+            }
+        }], spark_operator.params['volumes'])
+        self.assertEqual([{
+            'mountPath': '/tmp/spark/logs',
+            'name': 'spark-logs',
+            'readOnly': True,
+        }], spark_operator.params['driver']['volumeMounts'])
+        self.assertEqual([{
+            'mountPath': '/tmp/spark/logs',
+            'name': 'spark-logs',
+            'readOnly': True,
+        }], spark_operator.params['executor']['volumeMounts'])
