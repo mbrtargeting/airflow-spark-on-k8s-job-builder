@@ -212,7 +212,7 @@ Then:
 # activate venv
 pyenv activate airflowsparkk8sbuilder
 # clean up previous builds
-python setup.py clean --all
+python setup.py clean --all && rm -rf dist && rm -rf airflow_spark_on_k8s_job_builder.egg-info
 # build a package
 python -m build
 # upload to test pypi
