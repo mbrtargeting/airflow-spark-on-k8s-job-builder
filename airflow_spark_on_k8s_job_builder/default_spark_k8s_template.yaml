@@ -28,17 +28,17 @@ spec:
   {% endif %}
   restartPolicy:
     type: Never
-  {% if params.volumes|length %}
+  {% if params.volumes|default([])|length %}
   volumes: {{ params.volumes }}
   {% endif %}
   driver:
-    {% if params.driver.affinity|length %}
+    {% if params.driver.affinity|default([])|length %}
     affinity: {{ params.driver.affinity }}
     {% endif %}
-    {% if params.driver.tolerations|length %}
+    {% if params.driver.tolerations|default([])|length %}
     tolerations: {{ params.driver.tolerations }}
     {% endif %}
-    {% if params.driver.annotations|length %}
+    {% if params.driver.annotations|default([])|length %}
     annotations: {{ params.driver.annotations }}
     {% endif %}
     cores: {{ params.driver.cores }}
@@ -46,24 +46,24 @@ spec:
     coreLimit: "{{ params.driver.coreLimit }}"
     {% endif %}
     memory: "{{ params.driver.memory }}"
-    {% if params.driver.labels|length %}
+    {% if params.driver.labels|default([])|length %}
     labels: {{ params.driver.labels }}
     {% endif %}
     serviceAccount: "{{ params.driver.serviceAccount }}"
-    {% if params.driver.secrets|length %}
+    {% if params.driver.secrets|default([])|length %}
     secrets: {{ params.driver.secrets }}
     {% endif %}
-    {% if params.driver.env|length %}
+    {% if params.driver.env|default([])|length %}
     env: {{ params.driver.env }}
     {% endif %}
-    {% if params.driver.volumeMounts|length %}
+    {% if params.driver.volumeMounts|default([])|length %}
     volumeMounts: {{ params.driver.volumeMounts }}
     {% endif %}
-    {% if params.driver.sidecars|length %}
+    {% if params.driver.sidecars|default([])|length %}
     sidecars: {{ params.driver.sidecars }}
     {% endif %}
   executor:
-    {% if params.executor.affinity|length %}
+    {% if params.executor.affinity|default([])|length %}
     affinity: {{ params.executor.affinity }}
     {% endif %}
     cores: {{ params.executor.cores }}
@@ -72,22 +72,22 @@ spec:
     coreLimit: "{{ params.executor.coreLimit }}"
     {% endif %}
     memory: "{{ params.executor.memory }}"
-    {% if params.executor.tolerations|length %}
+    {% if params.executor.tolerations|default([])|length %}
     tolerations: {{ params.executor.tolerations }}
     {% endif %}
-    {% if params.executor.annotations|length %}
+    {% if params.executor.annotations|default([])|length %}
     annotations: {{ params.executor.annotations }}
     {% endif %}
-    {% if params.executor.labels|length %}
+    {% if params.executor.labels|default([])|length %}
     labels: {{ params.executor.labels }}
     {% endif %}
     serviceAccount: "{{ params.executor.serviceAccount }}"
-    {% if params.executor.secrets|length %}
+    {% if params.executor.secrets|default([])|length %}
     secrets: {{ params.executor.secrets }}
     {% endif %}
-    {% if params.executor.volumeMounts|length %}
+    {% if params.executor.volumeMounts|default([])|length %}
     volumeMounts: {{ params.executor.volumeMounts }}
     {% endif %}
-    {% if params.executor.sidecars|length %}
+    {% if params.executor.sidecars|default([])|length %}
     sidecars: {{ params.executor.sidecars }}
     {% endif %}
