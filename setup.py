@@ -5,7 +5,8 @@ setup(
     version='0.3.3',
     author='Stroeer Labs Data Engineering',
     author_email='diogo.aurelio@stroeer.de',
-    description='A library to limit the amount of unnecessary boilerplate code required when launching Spark Jobs against k8s Spark-Operator in Airflow',
+    description='A library to limit the amount of unnecessary boilerplate code required when launching Spark Jobs '
+                'against k8s Spark-Operator in Airflow',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/yourusername/my_library',
