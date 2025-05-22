@@ -29,7 +29,7 @@ spec:
   restartPolicy:
     type: Never
   {% if params.volumes|length %}
-  volumes: {{ params.volumes }}
+  volumes: {{ params.volumes|tojson }}
   {% endif %}
   driver:
     {% if params.driver.affinity|length %}
@@ -57,7 +57,9 @@ spec:
     env: {{ params.driver.env }}
     {% endif %}
     {% if params.driver.volumeMounts|length %}
-    volumeMounts: {{ params.driver.volumeMounts }}
+    volumeMounts: {{ params.driver.volumeMounts|tojson }}
+    {% endif %}
+    {% if params.driver.lifecycle|length %}
     {% endif %}
     {% if params.driver.sidecars|length %}
     sidecars: {{ params.driver.sidecars }}
@@ -86,7 +88,7 @@ spec:
     secrets: {{ params.executor.secrets }}
     {% endif %}
     {% if params.executor.volumeMounts|length %}
-    volumeMounts: {{ params.executor.volumeMounts }}
+    volumeMounts: {{ params.executor.volumeMounts|tojson }}
     {% endif %}
     {% if params.executor.sidecars|length %}
     sidecars: {{ params.executor.sidecars }}
