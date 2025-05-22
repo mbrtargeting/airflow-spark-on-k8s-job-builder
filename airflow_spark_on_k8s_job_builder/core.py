@@ -450,8 +450,6 @@ class SparkK8sJobBuilder(object):
             readonly: bool = False,
     ) -> "SparkK8sJobBuilder":
         """Adds a global persistent volume mounted to the driver and all executors"""
-        if not self.get_job_params().get("volumes"):
-            self.get_job_params()["volumes"] = []
         existing_volumes = self.get_job_params().get("volumes", [])
 
         volume_config = {
@@ -470,14 +468,10 @@ class SparkK8sJobBuilder(object):
             'readOnly': readonly
         }
 
-        if not self.get_job_params()["driver"].get("volumeMounts"):
-            self.get_job_params()["driver"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(volume_mount_config)
         self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self.get_job_params()["executor"].get("volumeMounts"):
-            self.get_job_params()["executor"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
         existing_volume_mounts.append(volume_mount_config)
         self.get_job_params()["executor"]["volumeMounts"] = existing_volume_mounts
@@ -544,20 +538,14 @@ class SparkK8sJobBuilder(object):
                 },
             }
         }
-        if not self.get_job_params()["driver"].get("volumeMounts"):
-            self.get_job_params()["driver"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(update_volume_mounts)
         self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self.get_job_params()["driver"].get("sidecars"):
-            self.get_job_params()["driver"]["sidecars"] = []
         existing_sidecars = self.get_job_params()["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
         self.get_job_params()["driver"]["sidecars"] = existing_sidecars
 
-        if not self.get_job_params().get("volumes"):
-            self.get_job_params()["volumes"] = []
         existing_volumes = self.get_job_params().get("volumes", [])
         existing_volumes.append(update_volumes)
         self.get_job_params()["volumes"] = existing_volumes
