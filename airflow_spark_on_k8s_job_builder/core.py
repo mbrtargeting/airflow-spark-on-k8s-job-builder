@@ -498,20 +498,14 @@ class SparkK8sJobBuilder(object):
                 },
             }
         }
-        if not self.get_job_params()["driver"].get("volumeMounts"):
-            self.get_job_params()["driver"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(update_volume_mounts)
         self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self.get_job_params()["driver"].get("sidecars"):
-            self.get_job_params()["driver"]["sidecars"] = []
         existing_sidecars = self.get_job_params()["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
         self.get_job_params()["driver"]["sidecars"] = existing_sidecars
 
-        if not self.get_job_params().get("volumes"):
-            self.get_job_params()["volumes"] = []
         existing_volumes = self.get_job_params().get("volumes", [])
         existing_volumes.append(update_volumes)
         self.get_job_params()["volumes"] = existing_volumes
