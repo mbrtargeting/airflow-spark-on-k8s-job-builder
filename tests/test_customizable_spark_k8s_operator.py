@@ -293,6 +293,30 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         ]
         self.assertEqual(job_params, expected)
 
+    def test__sanitize_context_value_types_should_parse_stringified_dicts_and_lists(self):
+        # given: a context with stringified dicts/lists
+        mock_context = {
+            "params": {
+                "volumes": ["{'name': 'vol1', 'hostPath': {'path': '/tmp', 'type': 'Directory'}}"],
+                "driver": {
+                    "volumeMounts": ["{'name': 'vol1', 'mountPath': '/mnt/vol1'}"],
+                    "sidecars": ["{'name': 'sidecar1', 'image': 'busybox'}"]
+                }
+            }
+        }
+        self._set_sut(file_contents=self._test_spark_job_fixture_1())
+
+        # when: sanitizing context
+        sanitized = self.sut._sanitize_context_value_types(mock_context)
+
+        # then: all stringified dicts/lists should be parsed to dicts
+        self.assertIsInstance(sanitized["params"]["volumes"][0], dict)
+        self.assertEqual(sanitized["params"]["volumes"][0]["name"], "vol1")
+        self.assertIsInstance(sanitized["params"]["driver"]["volumeMounts"][0], dict)
+        self.assertEqual(sanitized["params"]["driver"]["volumeMounts"][0]["mountPath"], "/mnt/vol1")
+        self.assertIsInstance(sanitized["params"]["driver"]["sidecars"][0], dict)
+        self.assertEqual(sanitized["params"]["driver"]["sidecars"][0]["name"], "sidecar1")
+
     @staticmethod
     def _test_spark_job_fixture_1() -> str:
         return """
