@@ -9,11 +9,11 @@ metadata:
   namespace: "{{ params.namespace }}"
 spec:
   sparkConf: {{ params.sparkConf }}
-  {% if params.deps|length %}
+  {% if params.deps|default([])|length %}
   deps: {{ params.deps }}
   {% endif %}
   timeToLiveSeconds: 600
-  {% if params.imagePullSecrets|length %}
+  {% if params.imagePullSecrets|default([])|length %}
   imagePullSecrets: {{ params.imagePullSecrets }}
   {% endif %}
   type: "{{ params.language }}"
@@ -23,7 +23,7 @@ spec:
   mainClass: "{{ params.mainClass }}"
   mainApplicationFile: "{{ params.mainApplicationFile }}"
   sparkVersion: "{{ params.sparkVersion }}"
-  {% if params.jobArguments and params.jobArguments|length %}
+  {% if params.jobArguments|default([])|length %}
   arguments: {{ params.jobArguments }}
   {% endif %}
   restartPolicy:
