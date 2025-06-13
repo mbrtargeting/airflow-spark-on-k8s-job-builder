@@ -3,7 +3,6 @@ from airflow.utils.context import Context
 from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
 from jinja2 import Template
 import logging
-from typing import Sequence
 
 
 class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
@@ -16,10 +15,6 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
         - Airflow macros: https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html
 
     """
-
-    template_fields: Sequence[str] = (
-        "application_file",
-    )
 
     def __init__(
             self,
