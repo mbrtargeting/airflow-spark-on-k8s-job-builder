@@ -131,8 +131,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(executor.get('instances'), 2)
 
         # then: the driver should not have the xcom sidecar container setup by default
-        self.assertIsNone(driver.get('sidecars'))
-        self.assertIsNone(driver.get('volumeMounts'))
+        self.assertEqual(driver.get('sidecars'), [])
+        self.assertEqual(driver.get('volumeMounts'), [])
 
     def test_spark_k8s_yaml_file_add_xcom_sidecar_config_correctly(self):
         # given: The default spark k8s app file
