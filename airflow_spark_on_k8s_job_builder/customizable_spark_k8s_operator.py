@@ -10,9 +10,12 @@ from typing import Any, Dict, List
 
 class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
     """
-    A decorator that allows using airflow macros inside spark k8s template
-    It does so by intercepting execute method with a sole purpose of rendering
-    a second time the jinja values of the SparkApplication yaml manifest
+    A decorator to allow performing "last minute fixes" - just before executing a given task
+    instance - when airflow jinja template rendering decides to misbehave
+    It addresses different issues we have encountered across different versions of Airflow
+
+    It will allow for re-rendering the SparkApplication yaml manifest with the context object
+    and replace airflow macros
 
     Ref docs:
         - Airflow macros: https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html
@@ -24,10 +27,12 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             *,
             application_file: str,
             sanitize_context: bool = False,
+            rerender_template: bool = False,
             **kwargs,
     ):
         self._sanitize_context = sanitize_context
         self._original_application_file = copy.deepcopy(application_file)
+        self._rerender_template = rerender_template
         super().__init__(application_file=application_file, **kwargs)
 
     def _re_render_application_file_template(self, context: Context) -> None:
@@ -75,9 +80,10 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             context = self._sanatise_context_value_types(context)
             logging.debug(f"context after being updated is: \n{context}")
 
-        logging.debug(f"application file before re-rendering is: \n{self.application_file}")
-        self._re_render_application_file_template(context)
-        logging.debug(f"application file after re-rendering is: \n{self.application_file}")
+        if not self._rerender_template:
+            logging.debug(f"application file before re-rendering is: \n{self.application_file}")
+            self._re_render_application_file_template(context)
+            logging.debug(f"application file after re-rendering is: \n{self.application_file}")
         return super().execute(context)
 
 
