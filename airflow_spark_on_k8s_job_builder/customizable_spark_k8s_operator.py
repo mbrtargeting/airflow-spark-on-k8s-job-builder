@@ -23,42 +23,35 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             self,
             *,
             application_file: str,
+            sanitize_context: bool = False,
             **kwargs,
     ):
-        self._job_spec_params = kwargs.get('params')
+        self._sanitize_context = sanitize_context
+        self._original_application_file = copy.deepcopy(application_file)
         super().__init__(application_file=application_file, **kwargs)
 
     def _re_render_application_file_template(self, context: Context) -> None:
         # merge airflow context w job spec params
-        logging.info(f"context before being updated is: \n{context}")
-        context.update(self._job_spec_params)
-        context = self._sanatise_context_value_types(context)
-        logging.info(f"context after being updated is: \n{context}")
-        template = Template(self.application_file)
+        template = Template(self._original_application_file)
         rendered_template = template.render(context)
         self.application_file = rendered_template
-        logging.info(f"application file rendered is: \n{self.application_file}")
 
     @staticmethod
     def _parse_string_to_dict(input_string):
         try:
-            logging.warning(f"converting string {input_string} to dict")
             parsed_dict = ast.literal_eval(input_string)
             if isinstance(parsed_dict, dict):
-                logging.warning(f"parsed string to dict - {input_string} - {parsed_dict}")
                 return parsed_dict
         except (ValueError, SyntaxError):
             pass
         return input_string
 
     def _process_string_array(self, key: str, core_dict: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
-        logging.warning(f"processing {key} - {core_dict}")
         objects = core_dict.get(key, [])
         if len(objects) > 0:
             new_objects = []
             for obj in objects:
                 if isinstance(obj, str):
-                    logging.warning(f'{key} is a string, converting to dict - {obj}')
                     new_objects.append(self._parse_string_to_dict(obj))
             return new_objects
         return objects
@@ -67,20 +60,24 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
         """
             Last adjustment addresses issue context map merge
         """
-        if context.get("volumes"):
-            params = copy.deepcopy(context)
-            context["volumes"] = self._process_string_array("volumes", params)
-        if context.get("driver", {}).get("volumeMounts"):
-            driver = copy.deepcopy(context["driver"])
-            context["driver"]["volumeMounts"] = self._process_string_array("volumeMounts", driver)
+        if context.get("params", {}).get("volumes"):
+            context["params"]["volumes"] = self._process_string_array("volumes", context["params"])
+        if context.get("params", {}).get("driver", {}).get("volumeMounts"):
+            context["params"]["driver"]["volumeMounts"] = self._process_string_array("volumeMounts", context["params"]["driver"])
 
-        if context.get("driver", {}).get("sidecars"):
-            driver = copy.deepcopy(context["driver"])
-            context["driver"]["sidecars"] = self._process_string_array("sidecars", driver)
+        if context.get("params", {}).get("driver", {}).get("sidecars"):
+            context["params"]["driver"]["sidecars"] = self._process_string_array("sidecars", context["params"]["driver"])
         return context
 
     def execute(self, context: Context):
+        if self._sanitize_context:
+            logging.debug(f"context before being updated is: \n{context}")
+            context = self._sanatise_context_value_types(context)
+            logging.debug(f"context after being updated is: \n{context}")
+
+        logging.debug(f"application file before re-rendering is: \n{self.application_file}")
         self._re_render_application_file_template(context)
+        logging.debug(f"application file after re-rendering is: \n{self.application_file}")
         return super().execute(context)
 
 
