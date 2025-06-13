@@ -14,10 +14,10 @@ from airflow import DAG
 from airflow.models import BaseOperator
 from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
 
-from spark_on_k8s_job_builder.constants import (
+from .constants  import (
     DEFAULT_SPARK_VERSION, DEFAULT_NAMESPACE, SPARK_JOB_SPEC_TEMPLATE, OVERRIDE_ME,
 )
-from spark_on_k8s_job_builder.customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
+from .customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
 
 SPARK_AIRFLOW_TASK_GROUP = "spark_task_group"
 
