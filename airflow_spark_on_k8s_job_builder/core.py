@@ -43,6 +43,7 @@ class SparkK8sJobBuilder(object):
             retries: int = 0,
             use_sensor: bool = False,
             update_xcom_sidecar_container: bool = False,
+            sanitize_context: bool = False,
     ):
 
         if application_file is None:
@@ -80,6 +81,7 @@ class SparkK8sJobBuilder(object):
             self.set_main_application_file(main_application_file)
         if update_xcom_sidecar_container:
             self.setup_xcom_sidecar_container()
+        self._sanitize_context = sanitize_context
 
     def set_dag(self, dag: DAG):
         self._dag = dag
@@ -635,6 +637,7 @@ class SparkK8sJobBuilder(object):
             retries=self._retries,
             do_xcom_push=True,
             execution_timeout=self._task_timeout,
+            sanitize_context=self._sanitize_context,
             **kwargs,
         )
 
