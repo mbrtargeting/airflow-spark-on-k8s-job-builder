@@ -688,7 +688,7 @@ class SparkK8sJobBuilder(object):
                 dag=self._dag,
                 attach_log=True,
                 timeout=self._sensor_timeout,
-                retries=self._retries,
+                retries=self._retries + 1,
                 retry_delay=timedelta(minutes=0),  # set to 0 since it clears the task immediately
             )
             return [task, sensor]
