@@ -39,10 +39,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         )
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_in_job_args(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_1()
@@ -101,10 +100,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(expected, job_params)
 
     def test__re_render_application_file_template_should_evaluate_extra_params_in_env_vars(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_2()
@@ -157,10 +155,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(env[0]['value'], expected)
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_everywhere_in_the_template(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_3()
@@ -227,10 +224,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(job_params, expected)
 
     def test__re_render_application_file_template_should_evaluate_methods_called_on_airflow_kwargs(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_4()
