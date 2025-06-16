@@ -293,7 +293,8 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         ]
         self.assertEqual(job_params, expected)
 
-    def _test_spark_job_fixture_1(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_1() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -392,7 +393,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_2(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_2() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -487,7 +489,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_3(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_3() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -590,7 +593,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_4(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_4() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
