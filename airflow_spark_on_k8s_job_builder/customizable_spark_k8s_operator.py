@@ -1,6 +1,7 @@
 
 from airflow.utils.context import Context
 from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
+import copy
 from jinja2 import Template
 import logging
 
@@ -23,12 +24,13 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             **kwargs,
     ):
         self._job_spec_params = kwargs.get('params')
+        self._original_application_file = copy.deepcopy(application_file)
         super().__init__(application_file=application_file, **kwargs)
 
     def _re_render_application_file_template(self, context: Context) -> None:
         # merge airflow context w job spec params
         context.update(self._job_spec_params)
-        template = Template(self.application_file)
+        template = Template(self._original_application_file)
         rendered_template = template.render(context)
         self.application_file = rendered_template
         logging.info(f"application file rendered is: \n{self.application_file}")
