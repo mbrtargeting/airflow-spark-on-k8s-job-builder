@@ -66,7 +66,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
         "sparkVersion": DEFAULT_SPARK_VERSION,
         "sparkConf": DEFAULT_SPARK_CONF,
         "jobArguments": [],
-        "imagePullSecrets": {},
+        "imagePullSecrets": [],
         # https://kubeflow.github.io/spark-operator/docs/user-guide.html#specifying-application-dependencies
         "deps": {},
         "volumes": [],
@@ -106,8 +106,8 @@ SPARK_JOB_SPEC_TEMPLATE = {
                 "karpenter.sh/do-not-disrupt": "true",
             },
             "labels": {"version": "3.4.2"},
-            "secrets": {},
-            "env": {},
+            "secrets": [],
+            "env": [],
         },
         "executor": {
             "instances": 2,
@@ -140,7 +140,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
                 "karpenter.sh/do-not-disrupt": "true",
             },
             "labels": {},
-            "secrets": {},
+            "secrets": [],
         },
     },
 }

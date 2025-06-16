@@ -43,6 +43,8 @@ class SparkK8sJobBuilder(object):
             retries: int = 0,
             use_sensor: bool = False,
             update_xcom_sidecar_container: bool = False,
+            sanitize_context: bool = False,
+            rerender_template: bool = False,
     ):
 
         if application_file is None:
@@ -81,6 +83,8 @@ class SparkK8sJobBuilder(object):
             self.set_main_application_file(main_application_file)
         if update_xcom_sidecar_container:
             self.setup_xcom_sidecar_container()
+        self._sanitize_context = sanitize_context
+        self._rerender_template = rerender_template
 
     def set_dag(self, dag: DAG):
         self._dag = dag
@@ -450,8 +454,6 @@ class SparkK8sJobBuilder(object):
             readonly: bool = False,
     ) -> "SparkK8sJobBuilder":
         """Adds a global persistent volume mounted to the driver and all executors"""
-        if not self.get_job_params().get("volumes"):
-            self.get_job_params()["volumes"] = []
         existing_volumes = self.get_job_params().get("volumes", [])
 
         volume_config = {
@@ -470,14 +472,10 @@ class SparkK8sJobBuilder(object):
             'readOnly': readonly
         }
 
-        if not self.get_job_params()["driver"].get("volumeMounts"):
-            self.get_job_params()["driver"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(volume_mount_config)
         self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self.get_job_params()["executor"].get("volumeMounts"):
-            self.get_job_params()["executor"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
         existing_volume_mounts.append(volume_mount_config)
         self.get_job_params()["executor"]["volumeMounts"] = existing_volume_mounts
@@ -544,20 +542,14 @@ class SparkK8sJobBuilder(object):
                 },
             }
         }
-        if not self.get_job_params()["driver"].get("volumeMounts"):
-            self.get_job_params()["driver"]["volumeMounts"] = []
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(update_volume_mounts)
         self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
 
-        if not self.get_job_params()["driver"].get("sidecars"):
-            self.get_job_params()["driver"]["sidecars"] = []
         existing_sidecars = self.get_job_params()["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
         self.get_job_params()["driver"]["sidecars"] = existing_sidecars
 
-        if not self.get_job_params().get("volumes"):
-            self.get_job_params()["volumes"] = []
         existing_volumes = self.get_job_params().get("volumes", [])
         existing_volumes.append(update_volumes)
         self.get_job_params()["volumes"] = existing_volumes
@@ -687,6 +679,8 @@ class SparkK8sJobBuilder(object):
             retries=self._retries,
             do_xcom_push=True,
             execution_timeout=self._task_timeout,
+            sanitize_context=self._sanitize_context,
+            rerender_template=self._rerender_template,
             **kwargs,
         )
 
@@ -700,7 +694,7 @@ class SparkK8sJobBuilder(object):
                 dag=self._dag,
                 attach_log=True,
                 timeout=self._sensor_timeout,
-                retries=self._retries,
+                retries=self._retries + 1,
                 retry_delay=timedelta(minutes=0),  # set to 0 since it clears the task immediately
             )
             return [task, sensor]

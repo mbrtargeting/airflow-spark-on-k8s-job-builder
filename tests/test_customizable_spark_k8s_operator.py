@@ -39,10 +39,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         )
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_in_job_args(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_1()
@@ -101,10 +100,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(expected, job_params)
 
     def test__re_render_application_file_template_should_evaluate_extra_params_in_env_vars(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_2()
@@ -157,10 +155,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(env[0]['value'], expected)
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_everywhere_in_the_template(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_3()
@@ -227,10 +224,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(job_params, expected)
 
     def test__re_render_application_file_template_should_evaluate_methods_called_on_airflow_kwargs(self):
-        # given: a hypothetical airflow instance, where a SparkK8sBuilder has been instantiated
-        #       when CustomizableSparkKubernetesOperator is instantiated in SparkK8sBuilder, airflow will
-        #       perform the first round of jinja template  application file rendering in the background
-        #       which we emulate by passing already a semi-parsed application_file content
+        # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
+        #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
+        #       re-rendering the application file template
 
         # when: a spark_application_file is loaded, and passed to CustomizableSparkKubernetesOperator constructor
         file_contents = self._test_spark_job_fixture_4()
@@ -293,7 +289,32 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         ]
         self.assertEqual(job_params, expected)
 
-    def _test_spark_job_fixture_1(self) -> str:
+    def test__sanitize_context_value_types_should_parse_stringified_dicts_and_lists(self):
+        # given: a context with stringified dicts/lists
+        mock_context = {
+            "params": {
+                "volumes": ["{'name': 'vol1', 'hostPath': {'path': '/tmp', 'type': 'Directory'}}"],
+                "driver": {
+                    "volumeMounts": ["{'name': 'vol1', 'mountPath': '/mnt/vol1'}"],
+                    "sidecars": ["{'name': 'sidecar1', 'image': 'busybox'}"]
+                }
+            }
+        }
+        self._set_sut(file_contents=self._test_spark_job_fixture_1())
+
+        # when: sanitizing context
+        sanitized = self.sut._sanitize_context_value_types(mock_context)
+
+        # then: all stringified dicts/lists should be parsed to dicts
+        self.assertIsInstance(sanitized["params"]["volumes"][0], dict)
+        self.assertEqual(sanitized["params"]["volumes"][0]["name"], "vol1")
+        self.assertIsInstance(sanitized["params"]["driver"]["volumeMounts"][0], dict)
+        self.assertEqual(sanitized["params"]["driver"]["volumeMounts"][0]["mountPath"], "/mnt/vol1")
+        self.assertIsInstance(sanitized["params"]["driver"]["sidecars"][0], dict)
+        self.assertEqual(sanitized["params"]["driver"]["sidecars"][0]["name"], "sidecar1")
+
+    @staticmethod
+    def _test_spark_job_fixture_1() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -392,7 +413,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_2(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_2() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -487,7 +509,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_3(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_3() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
@@ -590,7 +613,8 @@ spec:
     serviceAccount: data-platform
         """
 
-    def _test_spark_job_fixture_4(self) -> str:
+    @staticmethod
+    def _test_spark_job_fixture_4() -> str:
         return """
 ---
 apiVersion: "sparkoperator.k8s.io/v1beta2"
