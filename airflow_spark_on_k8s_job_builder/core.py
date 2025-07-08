@@ -45,6 +45,7 @@ class SparkK8sJobBuilder(object):
             update_xcom_sidecar_container: bool = False,
             sanitize_context: bool = False,
             rerender_template: bool = False,
+            task_group_id: Optional[str] = None,
     ):
 
         if application_file is None:
@@ -85,6 +86,7 @@ class SparkK8sJobBuilder(object):
             self.setup_xcom_sidecar_container()
         self._sanitize_context = sanitize_context
         self._rerender_template = rerender_template
+        self._task_group_id = task_group_id
 
     def set_dag(self, dag: DAG):
         self._dag = dag
@@ -578,6 +580,13 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["driver"]["env"] = value
         return self
 
+    def set_task_group_id(self, task_group_id: str) -> "SparkK8sJobBuilder":
+        """Sets task group id for the Spark job."""
+        if not task_group_id or len(task_group_id) == 0:
+            raise ValueError("Need to provide a non-empty string for changing the task group id")
+        self._task_group_id = task_group_id
+        return self
+
     def _validate_task_id(self):
         if not self._task_id:
             raise ValueError("Need to provide a task id")
@@ -685,11 +694,12 @@ class SparkK8sJobBuilder(object):
         )
 
         if self._use_sensor:
+            clear_task_id = f"{self._task_group_id}.{self._task_id}" if self._task_group_id else self._task_id
             sensor = SparkKubernetesSensor(
                 task_id="{}_monitor".format(self._task_id),
                 namespace=self._namespace,
                 application_name="{{ task_instance.xcom_pull(task_ids='"
-                                 + self._task_id
+                                 + clear_task_id
                                  + "')['metadata']['name'] }}",
                 dag=self._dag,
                 attach_log=True,
