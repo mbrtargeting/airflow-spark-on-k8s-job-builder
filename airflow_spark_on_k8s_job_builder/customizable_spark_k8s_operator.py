@@ -39,7 +39,7 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
     def _re_render_application_file_template(self, context: Context) -> None:
         # merge airflow context w job spec params
         context.update(self._job_spec_params)
-        template = Template(self._original_application_file)
+        template = Template(self.application_file)
         rendered_template = template.render(context)
         self.application_file = rendered_template
 
