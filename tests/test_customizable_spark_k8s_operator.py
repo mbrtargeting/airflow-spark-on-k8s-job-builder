@@ -17,7 +17,7 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             start_date=datetime(2023, 1, 1),
         )
         self.job_name = "some-job"
-        self.params = {"params": {"jobName": self.job_name}}
+        self.params = {"jobName": self.job_name}
         self.task_id = "test_task_id"
         self.namespace = "my_namespace"
         self.service_account = "my_service_account"
