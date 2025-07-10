@@ -44,7 +44,7 @@ class SparkK8sJobBuilder(object):
             use_sensor: bool = False,
             update_xcom_sidecar_container: bool = False,
             sanitize_context: bool = False,
-            rerender_template: bool = False,
+            rerender_template: bool = True,
             task_group_id: Optional[str] = None,
     ):
 
