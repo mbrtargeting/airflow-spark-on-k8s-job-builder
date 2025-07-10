@@ -26,8 +26,8 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             self,
             *,
             application_file: str,
-            sanitize_context: bool = False,
-            rerender_template: bool = False,
+            sanitize_context: bool,
+            rerender_template: bool,
             **kwargs,
     ):
         self._job_spec_params = kwargs.get('params')

@@ -36,6 +36,8 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             namespace=self.namespace,
             do_xcom_push=self.do_xcom_push,
             application_file=file_contents,
+            rerender_template=True,
+            sanitize_context=True,
         )
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_in_job_args(self):
