@@ -30,8 +30,12 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install gcc build-essential libsasl2-dev -y
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          pip install pip-tools
+
+      - name: Install python dependencies
+        id: install-py-dependencies
+        run: |
+          pip-sync requirements.txt requirements-dev.txt
 
       - name: Run tests
         id: test
