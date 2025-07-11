@@ -190,8 +190,8 @@ pip-sync requirements.txt requirements-dev.txt
 The `requirements.txt` and `requirements-dev.txt` files are generated using [pip-compile](https://github.com/jazzband/pip-tools) and should **not** be edited manually. To add new dependencies, simply add them to the respective `requirements.in` or `requirements-dev.in` files and update the `.txt` files by running:
 
 ```shell
-pip-compile requirements.in
-pip-compile requirements-dev.in
+pip-compile requirements.in --output-file requirements.txt
+pip-compile requirements-dev.in --output-file requirements-dev.txt
 ```
 
 To make sure your environment is up-to-date with the latest changes you added, run `pip-sync` command:
