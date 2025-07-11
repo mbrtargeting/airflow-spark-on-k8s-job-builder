@@ -1,3 +1,11 @@
 twine
 build
 pytest
+pytest-cov
+isort
+black
+autoflake
+pylint
+coverage
+coverage-badge
+anybadge
