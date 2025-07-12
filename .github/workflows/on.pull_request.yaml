@@ -43,6 +43,17 @@ jobs:
         run: |
           pip-sync requirements.txt requirements-dev.txt
 
+      - name: Lint code
+        id: lint
+        run: |
+          autoflake -r --in-place --remove-all-unused-imports --expand-star-imports -v . && \
+            isort . && \
+            black . && \
+            pylint --rcfile .pylintrc --fail-under=5 --output-format=colorized airflow_spark_on_k8s_job_builder
+ 
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            git diff --exit-code || (echo "Lint step has failed - please lint it" && exit 1)
+
       - name: Run tests
         id: test
         run: |
