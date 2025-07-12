@@ -2,13 +2,16 @@ import copy
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict
 
 from airflow import DAG
 from airflow.utils import yaml
 from jinja2 import Environment, StrictUndefined
-from typing import Any, Dict
 
-from airflow_spark_on_k8s_job_builder.constants import DEFAULT_SPARK_CONF, SPARK_JOB_SPEC_TEMPLATE
+from airflow_spark_on_k8s_job_builder.constants import (
+    DEFAULT_SPARK_CONF,
+    SPARK_JOB_SPEC_TEMPLATE,
+)
 from airflow_spark_on_k8s_job_builder.core import SparkK8sJobBuilder
 
 
@@ -17,8 +20,8 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
     def setUp(self):
         self.mock_dag = DAG(
             dag_id="test_dag",
-            default_args={"retries": 3, 'retry_delay': timedelta(minutes=5)},
-            start_date=datetime(2023, 1, 1)
+            default_args={"retries": 3, "retry_delay": timedelta(minutes=5)},
+            start_date=datetime(2023, 1, 1),
         )
 
         self.task_id = "test_task_id"
@@ -31,17 +34,19 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.main_application_file = "my-app-file"
         self.sut = self._get_sut()
         repo_root = Path().resolve()
-        while not (repo_root / '.git').exists():
+        while not (repo_root / ".git").exists():
             # recurse up to find the repo root independent of where PYTHON_PATH is set
             repo_root = repo_root.parent
 
         self.repo_root = repo_root
 
     @staticmethod
-    def _add_airflow_default_inject_jinja_params(params: Dict[str, Any], nodash: str = "mock-nodash-value"):
-        params['ts_nodash'] = nodash
-        params['task_instance'] = {}
-        params['task_instance']['try_number'] = 1
+    def _add_airflow_default_inject_jinja_params(
+        params: Dict[str, Any], nodash: str = "mock-nodash-value"
+    ):
+        params["ts_nodash"] = nodash
+        params["task_instance"] = {}
+        params["task_instance"]["try_number"] = 1
         return params
 
     def _load_yaml_template(self):
@@ -51,7 +56,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         return template
 
     def _get_sut(self) -> SparkK8sJobBuilder:
-        """ factory for system under test """
+        """factory for system under test"""
         return SparkK8sJobBuilder(
             dag=self.mock_dag,
             task_id=self.task_id,
@@ -70,17 +75,17 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         template = self._load_yaml_template()
 
         params = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
-        params['ts_nodash'] = "mock-value"
-        params['task_instance'] = {}
-        params['task_instance']['try_number'] = 1
+        params["ts_nodash"] = "mock-value"
+        params["task_instance"] = {}
+        params["task_instance"]["try_number"] = 1
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
-        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
-        self.assertEqual('SparkApplication', res.get('kind'))
-        self.assertEqual('TODO_OVERRIDE_ME-mock-value-1', res.get('metadata').get('name'))
+        self.assertEqual("sparkoperator.k8s.io/v1beta2", res.get("apiVersion"))
+        self.assertEqual("SparkApplication", res.get("kind"))
+        self.assertEqual("TODO_OVERRIDE_ME-mock-value-1", res.get("metadata").get("name"))
 
     def test_spark_k8s_yaml_file_is_replaced_correctly(self):
         # given: The default spark k8s app file
@@ -88,9 +93,9 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         params = {"params": copy.deepcopy(self.sut.get_job_params())}
         nodash = "mock-nodash-value"
-        params['ts_nodash'] = nodash
-        params['task_instance'] = {}
-        params['task_instance']['try_number'] = 1
+        params["ts_nodash"] = nodash
+        params["task_instance"] = {}
+        params["task_instance"]["try_number"] = 1
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
         print("rendered content {}", rendered_content)
@@ -98,41 +103,44 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
         print(res)
-        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
-        self.assertEqual('SparkApplication', res.get('kind'))
-        self.assertEqual(f'{self.job_name}-{nodash}-1', res.get('metadata').get('name'))
-        self.assertEqual(self.namespace, res.get('metadata').get('namespace'))
+        self.assertEqual("sparkoperator.k8s.io/v1beta2", res.get("apiVersion"))
+        self.assertEqual("SparkApplication", res.get("kind"))
+        self.assertEqual(f"{self.job_name}-{nodash}-1", res.get("metadata").get("name"))
+        self.assertEqual(self.namespace, res.get("metadata").get("namespace"))
 
-        spec = res.get('spec')
+        spec = res.get("spec")
         # then: sparkConf spec should be correctly set
-        spark_conf = spec.get('sparkConf')
-        self.assertEqual('true', spark_conf.get('spark.kubernetes.driver.service.deleteOnTermination'))
+        spark_conf = spec.get("sparkConf")
+        self.assertEqual(
+            "true",
+            spark_conf.get("spark.kubernetes.driver.service.deleteOnTermination"),
+        )
 
         # then: high level specs should be the defaults
-        self.assertEqual('Scala', spec.get('type'))
-        self.assertEqual('cluster', spec.get('mode'))
-        self.assertEqual('docker_img:1.2.3', spec.get('image'))
+        self.assertEqual("Scala", spec.get("type"))
+        self.assertEqual("cluster", spec.get("mode"))
+        self.assertEqual("docker_img:1.2.3", spec.get("image"))
 
-        driver = spec.get('driver')
-        executor = spec.get('executor')
+        driver = spec.get("driver")
+        executor = spec.get("executor")
         # then: service account should be the same for both
-        self.assertEqual(driver.get('serviceAccount'), self.service_account)
-        self.assertEqual(executor.get('serviceAccount'), self.service_account)
+        self.assertEqual(driver.get("serviceAccount"), self.service_account)
+        self.assertEqual(executor.get("serviceAccount"), self.service_account)
 
         # then: driver & executor should have cores defined
-        self.assertEqual(driver.get('cores'), 1)
-        self.assertEqual(executor.get('cores'), 2)
+        self.assertEqual(driver.get("cores"), 1)
+        self.assertEqual(executor.get("cores"), 2)
 
         # then: driver & executor should have memory defined
-        self.assertEqual(driver.get('memory'), '2g')
-        self.assertEqual(executor.get('memory'), '4g')
+        self.assertEqual(driver.get("memory"), "2g")
+        self.assertEqual(executor.get("memory"), "4g")
 
         # then: executor should have nr of instances defined
-        self.assertEqual(executor.get('instances'), 2)
+        self.assertEqual(executor.get("instances"), 2)
 
         # then: the driver should not have the xcom sidecar container setup by default
-        self.assertEqual(driver.get('sidecars'), [])
-        self.assertEqual(driver.get('volumeMounts'), [])
+        self.assertEqual(driver.get("sidecars"), [])
+        self.assertEqual(driver.get("volumeMounts"), [])
 
     def test_spark_k8s_yaml_file_add_xcom_sidecar_config_correctly(self):
         # given: The default spark k8s app file
@@ -152,40 +160,43 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
         print(res)
-        self.assertEqual('sparkoperator.k8s.io/v1beta2', res.get('apiVersion'))
-        self.assertEqual('SparkApplication', res.get('kind'))
-        self.assertEqual(f'{self.job_name}-{nodash}-1', res.get('metadata').get('name'))
-        self.assertEqual(self.namespace, res.get('metadata').get('namespace'))
+        self.assertEqual("sparkoperator.k8s.io/v1beta2", res.get("apiVersion"))
+        self.assertEqual("SparkApplication", res.get("kind"))
+        self.assertEqual(f"{self.job_name}-{nodash}-1", res.get("metadata").get("name"))
+        self.assertEqual(self.namespace, res.get("metadata").get("namespace"))
 
-        spec = res.get('spec')
+        spec = res.get("spec")
         # then: sparkConf spec should be correctly set
-        spark_conf = spec.get('sparkConf')
-        self.assertEqual('true', spark_conf.get('spark.kubernetes.driver.service.deleteOnTermination'))
+        spark_conf = spec.get("sparkConf")
+        self.assertEqual(
+            "true",
+            spark_conf.get("spark.kubernetes.driver.service.deleteOnTermination"),
+        )
 
         # then: high level specs should be the defaults
-        self.assertEqual('Scala', spec.get('type'))
-        self.assertEqual('cluster', spec.get('mode'))
-        self.assertEqual('docker_img:1.2.3', spec.get('image'))
+        self.assertEqual("Scala", spec.get("type"))
+        self.assertEqual("cluster", spec.get("mode"))
+        self.assertEqual("docker_img:1.2.3", spec.get("image"))
 
-        driver = spec.get('driver')
-        executor = spec.get('executor')
+        driver = spec.get("driver")
+        executor = spec.get("executor")
         # then: service account should be the same for both
-        self.assertEqual(driver.get('serviceAccount'), self.service_account)
-        self.assertEqual(executor.get('serviceAccount'), self.service_account)
+        self.assertEqual(driver.get("serviceAccount"), self.service_account)
+        self.assertEqual(executor.get("serviceAccount"), self.service_account)
 
         # then: the driver should have the xcom sidecar container setup
-        self.assertEqual(len(driver.get('sidecars')), 1)
-        sidecars = driver.get('sidecars')[0]
-        self.assertEqual(sidecars.get('image'), 'alpine')
-        self.assertEqual(sidecars.get('name'), 'airflow-xcom-sidecar')
-        self.assertEqual(sidecars.get('volumeMounts')[0].get('name'), 'xcom')
-        self.assertEqual(sidecars.get('volumeMounts')[0].get('mountPath'), '/airflow/xcom')
-        self.assertEqual(sidecars.get('resources').get('requests').get('cpu'), '1m')
-        self.assertEqual(sidecars.get('resources').get('requests').get('memory'), '10Mi')
-        self.assertEqual(len(driver.get('volumeMounts')), 1)
-        volume_mounts = driver.get('volumeMounts')[0]
-        self.assertEqual(volume_mounts.get('name'), 'xcom')
-        self.assertEqual(volume_mounts.get('mountPath'), '/airflow/xcom')
+        self.assertEqual(len(driver.get("sidecars")), 1)
+        sidecars = driver.get("sidecars")[0]
+        self.assertEqual(sidecars.get("image"), "alpine")
+        self.assertEqual(sidecars.get("name"), "airflow-xcom-sidecar")
+        self.assertEqual(sidecars.get("volumeMounts")[0].get("name"), "xcom")
+        self.assertEqual(sidecars.get("volumeMounts")[0].get("mountPath"), "/airflow/xcom")
+        self.assertEqual(sidecars.get("resources").get("requests").get("cpu"), "1m")
+        self.assertEqual(sidecars.get("resources").get("requests").get("memory"), "10Mi")
+        self.assertEqual(len(driver.get("volumeMounts")), 1)
+        volume_mounts = driver.get("volumeMounts")[0]
+        self.assertEqual(volume_mounts.get("name"), "xcom")
+        self.assertEqual(volume_mounts.get("mountPath"), "/airflow/xcom")
 
     def test_set_driver_cores_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -200,7 +211,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = 4
         self.sut.set_driver_cores(expected)
         # then: It should correctly assign that value of cores
-        self.assertEqual(expected, self.sut._job_spec['params']['driver']['cores'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["driver"]["cores"])
 
     def test_set_driver_memory_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -215,7 +226,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = "8g"
         self.sut.set_driver_memory(expected)
         # then: It should correctly assign that value of memory
-        self.assertEqual(expected, self.sut._job_spec['params']['driver']['memory'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["driver"]["memory"])
 
     def test_set_driver_memory_should_produce_correct_spark_k8s_yaml_file(self):
         # given: The default spark k8s app file
@@ -234,12 +245,14 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         res = yaml.safe_load(rendered_content)
         # then: it should have mutated driver memory value
 
-        result = res.get('spec', {}).get('driver', {}).get('memory')
+        result = res.get("spec", {}).get("driver", {}).get("memory")
 
         # then: service account should be the same for both
         self.assertEqual(expected, result)
 
-    def test_set_driver_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(self):
+    def test_set_driver_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(
+        self,
+    ):
         # given: The default spark k8s app file
         template = self._load_yaml_template()
 
@@ -256,18 +269,23 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
 
-        driver = res.get('spec', {}).get('driver', {})
+        driver = res.get("spec", {}).get("driver", {})
 
         # then: It should correctly assign that value of cores
-        driver_cores = driver.get('cores')
+        driver_cores = driver.get("cores")
         self.assertEqual(expected, driver_cores)
 
         # then: It should not also automatically change cores limit
-        driver_cores_limit = driver.get('coreLimit')
-        self.assertEqual(None, driver_cores_limit, "core limit should not be set unless specifically requested")
+        driver_cores_limit = driver.get("coreLimit")
+        self.assertEqual(
+            None,
+            driver_cores_limit,
+            "core limit should not be set unless specifically requested",
+        )
 
-
-    def test_set_driver_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(self):
+    def test_set_driver_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(
+        self,
+    ):
         # given: The default spark k8s app file
         template = self._load_yaml_template()
 
@@ -285,10 +303,10 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         res = yaml.safe_load(rendered_content)
         # then: it should have mutated driver CPU settings
 
-        cores = res.get('spec', {}).get('driver', {}).get('cores')
+        cores = res.get("spec", {}).get("driver", {}).get("cores")
         self.assertEqual(expected, cores, "driver cores request should be set")
 
-        cores_limit = res.get('spec', {}).get('driver', {}).get('coreLimit')
+        cores_limit = res.get("spec", {}).get("driver", {}).get("coreLimit")
         self.assertEqual(str(expected + 10), cores_limit, "driver cores limit should be set")
 
     def test_set_executor_cores_with_invalid_value_should_fail(self):
@@ -304,11 +322,13 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = 4
         self.sut.set_executor_cores(expected)
         # then: It should correctly assign that value of cores
-        self.assertEqual(expected, self.sut._job_spec['params']['executor']['cores'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["cores"])
         # then: It should not also automatically change cores limit
-        self.assertEqual(None, self.sut._job_spec['params']['executor'].get('coreLimit'))
+        self.assertEqual(None, self.sut._job_spec["params"]["executor"].get("coreLimit"))
 
-    def test_set_executor_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(self):
+    def test_set_executor_cores_without_limit_should_produce_correct_spark_k8s_yaml_file(
+        self,
+    ):
         # given: The default spark k8s app file
         template = self._load_yaml_template()
 
@@ -325,18 +345,23 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
 
-        executor = res.get('spec', {}).get('executor', {})
+        executor = res.get("spec", {}).get("executor", {})
 
         # then: It should correctly assign that value of cores
-        executor_cores = executor.get('cores')
+        executor_cores = executor.get("cores")
         self.assertEqual(expected, executor_cores)
 
         # then: It should not also automatically change cores limit
-        executor_cores_limit = executor.get('coreLimit')
-        self.assertEqual(None, executor_cores_limit, "core limit should not be set unless specifically requested")
+        executor_cores_limit = executor.get("coreLimit")
+        self.assertEqual(
+            None,
+            executor_cores_limit,
+            "core limit should not be set unless specifically requested",
+        )
 
-
-    def test_set_executor_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(self):
+    def test_set_executor_cores_with_limit_should_produce_correct_spark_k8s_yaml_file(
+        self,
+    ):
         # given: The default spark k8s app file
         template = self._load_yaml_template()
 
@@ -353,15 +378,19 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
 
-        executor = res.get('spec', {}).get('executor', {})
+        executor = res.get("spec", {}).get("executor", {})
 
         # then: It should correctly assign that value of cores
-        executor_cores = executor.get('cores')
+        executor_cores = executor.get("cores")
         self.assertEqual(expected, executor_cores, "executor requested cores should be set")
 
         # then: It should correctly set the cores limit
-        executor_cores_limit = executor.get('coreLimit')
-        self.assertEqual(str(expected + 10), executor_cores_limit, "executor core limit should be set")
+        executor_cores_limit = executor.get("coreLimit")
+        self.assertEqual(
+            str(expected + 10),
+            executor_cores_limit,
+            "executor core limit should be set",
+        )
 
     def test_set_executor_cores_limit_to_zero_should_fail(self):
         # given: a standard SUT
@@ -375,7 +404,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # when: Setting SUT with valid cores value
         self.sut.set_executor_cores_limit(None)
         # then: It should correctly assign that value of cores
-        self.assertEqual(None, self.sut._job_spec['params']['executor']['coreLimit'])
+        self.assertEqual(None, self.sut._job_spec["params"]["executor"]["coreLimit"])
 
     def test_set_executor_cores_limit_should_succeed(self):
         # given: a standard SUT
@@ -383,7 +412,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = 4
         self.sut.set_executor_cores_limit(expected)
         # then: It should correctly assign that value of cores
-        self.assertEqual(expected, self.sut._job_spec['params']['executor']['coreLimit'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["coreLimit"])
 
     def test_validate_cores_with_defaults_should_succeed(self):
         # given: a standard SUT
@@ -425,7 +454,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = "16g"
         self.sut.set_executor_memory(expected)
         # then: It should correctly assign that value of memory
-        self.assertEqual(expected, self.sut._job_spec['params']['executor']['memory'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["memory"])
 
     def test_set_executor_instances_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -438,7 +467,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         expected = 5
         self.sut.set_executor_instances(expected)
         # then: It should correctly assign that value of instances
-        self.assertEqual(expected, self.sut._job_spec['params']['executor']['instances'])
+        self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["instances"])
 
     def test_set_driver_affinity_with_invalid_value_should_fail(self):
         # given: a standard SUT
@@ -532,7 +561,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                         }
                     }
                 ]
-            }
+            },
         }
         self.assertEqual(expected_affinity, self.sut.get_job_params()["driver"]["affinity"])
 
@@ -628,7 +657,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                         }
                     }
                 ]
-            }
+            },
         }
         self.assertEqual(expected_affinity, self.sut.get_job_params()["executor"]["affinity"])
 
@@ -643,7 +672,11 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                     "nodeSelectorTerms": [
                         {
                             "matchExpressions": [
-                                {"key": "driver", "operator": "In", "values": ["value1"]}
+                                {
+                                    "key": "driver",
+                                    "operator": "In",
+                                    "values": ["value1"],
+                                }
                             ]
                         }
                     ]
@@ -656,7 +689,11 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                     "nodeSelectorTerms": [
                         {
                             "matchExpressions": [
-                                {"key": "executor", "operator": "In", "values": ["value1"]}
+                                {
+                                    "key": "executor",
+                                    "operator": "In",
+                                    "values": ["value1"],
+                                }
                             ]
                         }
                     ]
@@ -674,15 +711,15 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
 
-        driver = res.get('spec', {}).get('driver', {})
-        executor = res.get('spec', {}).get('executor', {})
+        driver = res.get("spec", {}).get("driver", {})
+        executor = res.get("spec", {}).get("executor", {})
 
         # then: It should correctly assign that value of affinities
-        driver_affinity = driver.get('affinity')
+        driver_affinity = driver.get("affinity")
         self.assertEqual(expected_driver_affinity, driver_affinity)
 
         # then: It should correctly assign that value of affinities
-        executor_affinity = executor.get('affinity')
+        executor_affinity = executor.get("affinity")
         self.assertEqual(expected_executor_affinity, executor_affinity)
 
     def test_set_driver_tolerations_with_invalid_value_should_fail(self):
@@ -699,7 +736,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                 "key": "key1",
                 "operator": "Equal",
                 "value": "value1",
-                "effect": "NoSchedule"
+                "effect": "NoSchedule",
             }
         ]
 
@@ -723,7 +760,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
                 "key": "key2",
                 "operator": "Equal",
                 "value": "value2",
-                "effect": "NoExecute"
+                "effect": "NoExecute",
             }
         ]
 
@@ -816,11 +853,11 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
     def test_set_driver_labels_should_accept_labels_should_succeed(self):
         # given: a standard SUT
-        labels = {"app": "test-app", "env": "dev", 'version': '3.4.2'}
+        labels = {"app": "test-app", "env": "dev", "version": "3.4.2"}
         # when: Setting SUT with valid labels
         self.sut.set_driver_labels(labels)
         # then: It should correctly assign that value of labels
-        self.assertEqual(labels, self.sut._job_spec['params']['driver']['labels'])
+        self.assertEqual(labels, self.sut._job_spec["params"]["driver"]["labels"])
 
     def test_update_executor_labels_should_not_accept_empty_dict_should_fail(self):
         # given: a standard SUT
@@ -835,20 +872,23 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # when: Setting SUT with valid labels
         self.sut.set_executor_labels(labels)
         # then: It should correctly assign that value of labels
-        self.assertEqual(labels, self.sut._job_spec['params']['executor']['labels'])
+        self.assertEqual(labels, self.sut._job_spec["params"]["executor"]["labels"])
 
     def test_set_spark_conf_should_succeed(self):
         """Given a valid spark conf, When setting the spark conf, Then it should update the sparkConf."""
         # given: a standard SUT
         # when: Setting SUT with valid spark conf
-        conf = {"spark.executor.memoryOverhead": "1024M", "spark.dynamicAllocation.enabled": "false"}
+        conf = {
+            "spark.executor.memoryOverhead": "1024M",
+            "spark.dynamicAllocation.enabled": "false",
+        }
         self.sut.update_spark_conf(conf)
 
         # then: It should correctly assign that value of labels
         expected_conf = DEFAULT_SPARK_CONF.copy()
         expected_conf["spark.executor.memoryOverhead"] = "1024M"
         expected_conf["spark.dynamicAllocation.enabled"] = "false"
-        self.assertEqual(expected_conf, self.sut._job_spec['params']['sparkConf'])
+        self.assertEqual(expected_conf, self.sut._job_spec["params"]["sparkConf"])
 
     def test_get_dependencies_should_fail(self):
         # given: a standard SUT with dependencies
@@ -896,7 +936,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.sut.set_main_class(main_class)
 
         # then: The job spec should be updated with the correct main class
-        self.assertEqual(main_class, self.sut._job_spec['params']['mainClass'])
+        self.assertEqual(main_class, self.sut._job_spec["params"]["mainClass"])
 
     def test_set_main_class_empty_string_should_fail(self):
         """Given an empty main class, When setting the main class, Then it should raise a ValueError."""
@@ -907,7 +947,10 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             self.sut.set_main_class(main_class)
         # then: It should raise a ValueError for the empty main class
-        self.assertEqual(str(context.exception), 'Need to provide a non-empty string for changing the job main class')
+        self.assertEqual(
+            str(context.exception),
+            "Need to provide a non-empty string for changing the job main class",
+        )
 
     def test_set_main_application_file_should_succeed(self):
         """Given a valid main application file, When setting the file, Then it should update the job spec."""
@@ -918,7 +961,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.sut.set_main_application_file(main_app_file)
 
         # then: The job spec should be updated with the correct main application file
-        self.assertEqual(main_app_file, self.sut._job_spec['params']['mainApplicationFile'])
+        self.assertEqual(main_app_file, self.sut._job_spec["params"]["mainApplicationFile"])
 
     def test_set_main_application_file_empty_string_should_fail(self):
         """Given an empty main application file, When setting the file, Then it should raise a ValueError."""
@@ -930,8 +973,10 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             self.sut.set_main_application_file(main_app_file)
 
         # then: It should raise a ValueError for the empty main application file
-        self.assertEqual('Need to provide a non-empty string for changing the main application file',
-                         str(context.exception))
+        self.assertEqual(
+            "Need to provide a non-empty string for changing the main application file",
+            str(context.exception),
+        )
 
     def test_build_with_missing_task_id_should_fail(self):
         """Given no task_id, When building, Then it should raise a ValueError."""
@@ -951,7 +996,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             builder.build()
         # then: building should raise ValueError for missing task_id
-        self.assertEqual('Need to provide a task id', str(context.exception))
+        self.assertEqual("Need to provide a task id", str(context.exception))
 
     def test_build_with_missing_dag_should_fail(self):
         """Given no DAG, When building, Then it should raise a ValueError."""
@@ -971,7 +1016,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             builder.build()
         # then: Building should raise ValueError for missing DAG
-        self.assertEqual('Need to provide a DAG', str(context.exception))
+        self.assertEqual("Need to provide a DAG", str(context.exception))
 
     def test_build_with_missing_job_name_should_fail(self):
         """Given no job_name, When building, Then it should raise a ValueError."""
@@ -993,7 +1038,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             builder.build()
 
         # then: it should raise ValueError for missing job name
-        self.assertEqual('Need to provide a job name', str(context.exception))
+        self.assertEqual("Need to provide a job name", str(context.exception))
 
     def test_valid_build_operator_should_succeed(self):
         # given: A valid SparkK8sJobBuilder setup
@@ -1003,12 +1048,12 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         spark_operator = tasks[0]
 
         # then: Assert the operator is created with correct attributes
-        self.assertEqual('CustomizableSparkKubernetesOperator', spark_operator.operator_name)
-        self.assertEqual(self.job_name, spark_operator.params['jobName'])
-        self.assertEqual(self.docker_img, spark_operator.params['dockerImage'])
-        self.assertEqual(self.docker_img_tag, spark_operator.params['dockerImageTag'])
-        self.assertEqual(self.service_account, spark_operator.params['driver']['serviceAccount'])
-        self.assertEqual(self.service_account, spark_operator.params['executor']['serviceAccount'])
+        self.assertEqual("CustomizableSparkKubernetesOperator", spark_operator.operator_name)
+        self.assertEqual(self.job_name, spark_operator.params["jobName"])
+        self.assertEqual(self.docker_img, spark_operator.params["dockerImage"])
+        self.assertEqual(self.docker_img_tag, spark_operator.params["dockerImageTag"])
+        self.assertEqual(self.service_account, spark_operator.params["driver"]["serviceAccount"])
+        self.assertEqual(self.service_account, spark_operator.params["executor"]["serviceAccount"])
 
     def test_setup_xcom_sidecar_container(self):
         # given: a standard SUT
@@ -1017,27 +1062,32 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         builder = self.sut.setup_xcom_sidecar_container()
 
         # then: it should correctly set up the xcom sidecar container
-        driver_spec = builder._job_spec['params']['driver']
-        self.assertIn('volumeMounts', driver_spec)
-        self.assertIn('sidecars', driver_spec)
+        driver_spec = builder._job_spec["params"]["driver"]
+        self.assertIn("volumeMounts", driver_spec)
+        self.assertIn("sidecars", driver_spec)
 
-        volume_mounts = driver_spec['volumeMounts']
-        sidecars = driver_spec['sidecars']
+        volume_mounts = driver_spec["volumeMounts"]
+        sidecars = driver_spec["sidecars"]
 
         self.assertEqual(len(volume_mounts), 1)
-        self.assertEqual(volume_mounts[0]['name'], 'xcom')
-        self.assertEqual(volume_mounts[0]['mountPath'], '/airflow/xcom')
+        self.assertEqual(volume_mounts[0]["name"], "xcom")
+        self.assertEqual(volume_mounts[0]["mountPath"], "/airflow/xcom")
 
         self.assertEqual(len(sidecars), 1)
-        self.assertEqual(sidecars[0]['name'], 'airflow-xcom-sidecar')
-        self.assertEqual(sidecars[0]['image'], 'alpine')
-        self.assertEqual(sidecars[0]['command'], [
-            'sh', '-c', 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;'
-        ])
-        self.assertEqual(sidecars[0]['volumeMounts'][0]['name'], 'xcom')
-        self.assertEqual(sidecars[0]['volumeMounts'][0]['mountPath'], '/airflow/xcom')
-        self.assertEqual(sidecars[0]['resources']['requests']['cpu'], '1m')
-        self.assertEqual(sidecars[0]['resources']['requests']['memory'], '10Mi')
+        self.assertEqual(sidecars[0]["name"], "airflow-xcom-sidecar")
+        self.assertEqual(sidecars[0]["image"], "alpine")
+        self.assertEqual(
+            sidecars[0]["command"],
+            [
+                "sh",
+                "-c",
+                'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;',
+            ],
+        )
+        self.assertEqual(sidecars[0]["volumeMounts"][0]["name"], "xcom")
+        self.assertEqual(sidecars[0]["volumeMounts"][0]["mountPath"], "/airflow/xcom")
+        self.assertEqual(sidecars[0]["resources"]["requests"]["cpu"], "1m")
+        self.assertEqual(sidecars[0]["resources"]["requests"]["memory"], "10Mi")
 
     def test_global_volume_mount(self):
         # given: A valid SparkK8sJobBuilder setup
@@ -1046,28 +1096,41 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         builder = self.sut
 
         builder.add_global_persistent_volume(
-            'spark-logs',
-            'spark-logs-s3-pvc',
-            '/tmp/spark/logs',
+            "spark-logs",
+            "spark-logs-s3-pvc",
+            "/tmp/spark/logs",
             True,
         )
         tasks = builder.build()
         spark_operator = tasks[0]
 
         # then: Assert the operator is created with correct volume config
-        self.assertEqual([{
-            'name': 'spark-logs',
-            'persistentVolumeClaim': {
-                'claimName': 'spark-logs-s3-pvc'
-            }
-        }], spark_operator.params['volumes'])
-        self.assertEqual([{
-            'mountPath': '/tmp/spark/logs',
-            'name': 'spark-logs',
-            'readOnly': True,
-        }], spark_operator.params['driver']['volumeMounts'])
-        self.assertEqual([{
-            'mountPath': '/tmp/spark/logs',
-            'name': 'spark-logs',
-            'readOnly': True,
-        }], spark_operator.params['executor']['volumeMounts'])
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-logs",
+                    "persistentVolumeClaim": {"claimName": "spark-logs-s3-pvc"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark/logs",
+                    "name": "spark-logs",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark/logs",
+                    "name": "spark-logs",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )

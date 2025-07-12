@@ -1,11 +1,13 @@
-from airflow import DAG
-from airflow.utils import yaml
-from datetime import timedelta, datetime, date, timezone
-import pendulum
+from datetime import date, datetime, timedelta, timezone
 from unittest import TestCase
 
+import pendulum
+from airflow import DAG
+from airflow.utils import yaml
 
-from airflow_spark_on_k8s_job_builder.customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
+from airflow_spark_on_k8s_job_builder.customizable_spark_k8s_operator import (
+    CustomizableSparkKubernetesOperator,
+)
 
 
 class TestCustomizableSparkKubernetesOperator(TestCase):
@@ -13,7 +15,7 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
     def setUp(self):
         self.mock_dag = DAG(
             dag_id="test_dag",
-            default_args={"retries": 3, 'retry_delay': timedelta(minutes=5)},
+            default_args={"retries": 3, "retry_delay": timedelta(minutes=5)},
             start_date=datetime(2023, 1, 1),
         )
         self.job_name = "some-job"
@@ -38,7 +40,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             application_file=file_contents,
         )
 
-    def test__re_render_application_file_template_should_evaluate_default_injected_params_in_job_args(self):
+    def test__re_render_application_file_template_should_evaluate_default_injected_params_in_job_args(
+        self,
+    ):
         # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
         #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
         #       re-rendering the application file template
@@ -49,27 +53,27 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # when: CustomizableSparkKubernetesOperator call re-rendered method with a provided airflow context
         start_hour = 14
         job_duration_in_hours = 1
-        execution_date = pendulum.parse(f'2025-02-14T{start_hour}:12:34.000Z')
+        execution_date = pendulum.parse(f"2025-02-14T{start_hour}:12:34.000Z")
         mock_context = {
-            'execution_date': execution_date,
-            'ds': execution_date.to_date_string(),
-            'ds_nodash': execution_date.to_date_string().replace('-', ''),
-            'data_interval_start': execution_date,
-            'data_interval_end': execution_date.add(hours=job_duration_in_hours),
-            'ts': execution_date.isoformat(),
-            'ts_nodash': execution_date.format('%Y%m%dT%H%M%S')
+            "execution_date": execution_date,
+            "ds": execution_date.to_date_string(),
+            "ds_nodash": execution_date.to_date_string().replace("-", ""),
+            "data_interval_start": execution_date,
+            "data_interval_end": execution_date.add(hours=job_duration_in_hours),
+            "ts": execution_date.isoformat(),
+            "ts_nodash": execution_date.format("%Y%m%dT%H%M%S"),
         }
         self.sut._re_render_application_file_template(context=mock_context)
         res = self.sut.application_file
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(res)
-        spec = res.get('spec', {})
-        metadata = res.get('metadata', {})
+        spec = res.get("spec", {})
+        metadata = res.get("metadata", {})
 
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 6
-        job_params = spec.get('arguments', [])
+        job_params = spec.get("arguments", [])
         self.assertEqual(expected_nr_args, len(job_params))
 
         # then: it should have the expected ds param parsed
@@ -78,28 +82,32 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
 
         # then: it should have correctly inferred the job name
         expected_job_name = f"test-job-{mock_context.get('ds')}"
-        self.assertEqual(expected_job_name, metadata.get('name'))
+        self.assertEqual(expected_job_name, metadata.get("name"))
 
         # then: it should have the expected ts param parsed
         expected_ts_param = datetime(2025, 2, 14, start_hour, 12, 34, tzinfo=timezone.utc)
         self.assertEqual(expected_ts_param, job_params[3])
 
         # then: it should have the expected data-interval-end param parsed
-        expected_data_interval_end_param = datetime(2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc)
+        expected_data_interval_end_param = datetime(
+            2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc
+        )
         self.assertEqual(expected_data_interval_end_param, job_params[5])
 
         # then: the final result should be the same
         expected = [
-            '--run-date',
+            "--run-date",
             expected_ds_param,
-            '--run-ts',
+            "--run-ts",
             expected_ts_param,
-            '--data-interval-end',
+            "--data-interval-end",
             expected_data_interval_end_param,
         ]
         self.assertEqual(expected, job_params)
 
-    def test__re_render_application_file_template_should_evaluate_extra_params_in_env_vars(self):
+    def test__re_render_application_file_template_should_evaluate_extra_params_in_env_vars(
+        self,
+    ):
         # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
         #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
         #       re-rendering the application file template
@@ -111,28 +119,28 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # when: CustomizableSparkKubernetesOperator call re-rendered method with a provided airflow context
         start_hour = 14
         job_duration_in_hours = 1
-        execution_date = pendulum.parse(f'2025-02-14T{start_hour}:12:34.000Z')
+        execution_date = pendulum.parse(f"2025-02-14T{start_hour}:12:34.000Z")
         mock_context = {
-            'execution_date': execution_date,
-            'ds': execution_date.to_date_string(),
-            'ds_nodash': execution_date.to_date_string().replace('-', ''),
-            'data_interval_start': execution_date,
-            'data_interval_end': execution_date.add(hours=job_duration_in_hours),
-            'ts': execution_date.isoformat(),
-            'ts_nodash': execution_date.format('%Y%m%dT%H%M%S')
+            "execution_date": execution_date,
+            "ds": execution_date.to_date_string(),
+            "ds_nodash": execution_date.to_date_string().replace("-", ""),
+            "data_interval_start": execution_date,
+            "data_interval_end": execution_date.add(hours=job_duration_in_hours),
+            "ts": execution_date.isoformat(),
+            "ts_nodash": execution_date.format("%Y%m%dT%H%M%S"),
         }
         self.sut._re_render_application_file_template(context=mock_context)
         res = self.sut.application_file
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(res)
-        spec = res.get('spec', {})
-        env = spec.get('driver', {}).get('env')
-        metadata = res.get('metadata', {})
+        spec = res.get("spec", {})
+        env = spec.get("driver", {}).get("env")
+        metadata = res.get("metadata", {})
 
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 2
-        job_params = spec.get('arguments', [])
+        job_params = spec.get("arguments", [])
         self.assertEqual(expected_nr_args, len(job_params))
 
         # then: it should have the expected ds param parsed
@@ -141,20 +149,22 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
 
         # then: it should have correctly inferred the job name
         expected_job_name = f"test-job-{mock_context.get('ds')}"
-        self.assertEqual(expected_job_name, metadata.get('name'))
+        self.assertEqual(expected_job_name, metadata.get("name"))
 
         # then: the final result should be the same
         expected = [
-            '--run-date',
+            "--run-date",
             expected_ds_param,
         ]
         self.assertEqual(job_params, expected)
 
         # then: it should parse params.env
         expected = self.job_name
-        self.assertEqual(env[0]['value'], expected)
+        self.assertEqual(env[0]["value"], expected)
 
-    def test__re_render_application_file_template_should_evaluate_default_injected_params_everywhere_in_the_template(self):
+    def test__re_render_application_file_template_should_evaluate_default_injected_params_everywhere_in_the_template(
+        self,
+    ):
         # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
         #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
         #       re-rendering the application file template
@@ -166,64 +176,68 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # when: CustomizableSparkKubernetesOperator call re-rendered method with a provided airflow context
         start_hour = 14
         job_duration_in_hours = 1
-        execution_date = pendulum.parse(f'2025-02-14T{start_hour}:12:34.000Z')
+        execution_date = pendulum.parse(f"2025-02-14T{start_hour}:12:34.000Z")
         mock_context = {
-            'execution_date': execution_date,
-            'ds': execution_date.to_date_string(),
-            'ds_nodash': execution_date.to_date_string().replace('-', ''),
-            'data_interval_start': execution_date,
-            'data_interval_end': execution_date.add(hours=job_duration_in_hours),
-            'ts': execution_date.isoformat(),
-            'ts_nodash': execution_date.format('%Y%m%dT%H%M%S')
+            "execution_date": execution_date,
+            "ds": execution_date.to_date_string(),
+            "ds_nodash": execution_date.to_date_string().replace("-", ""),
+            "data_interval_start": execution_date,
+            "data_interval_end": execution_date.add(hours=job_duration_in_hours),
+            "ts": execution_date.isoformat(),
+            "ts_nodash": execution_date.format("%Y%m%dT%H%M%S"),
         }
         self.sut._re_render_application_file_template(context=mock_context)
         res = self.sut.application_file
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(res)
-        spec = res.get('spec', {})
-        env = spec.get('driver', {}).get('env')
-        metadata = res.get('metadata', {})
+        spec = res.get("spec", {})
+        env = spec.get("driver", {}).get("env")
+        metadata = res.get("metadata", {})
 
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 6
-        job_params = spec.get('arguments', [])
+        job_params = spec.get("arguments", [])
         self.assertEqual(len(job_params), expected_nr_args)
 
         # then: it should have the expected ds param parsed
         expected_ds_param = date(2025, 2, 14)
         self.assertEqual(job_params[1], expected_ds_param)
-        expected = '2025-02-14'
-        self.assertEqual(env[0]['value'], expected)
+        expected = "2025-02-14"
+        self.assertEqual(env[0]["value"], expected)
 
         # then: it should have correctly inferred the job name
         expected_job_name = f"test-job-2-{mock_context.get('ds')}"
-        self.assertEqual(metadata.get('name'), expected_job_name)
+        self.assertEqual(metadata.get("name"), expected_job_name)
 
         # then: it should have the expected ts param parsed
         expected_ts_param = datetime(2025, 2, 14, start_hour, 12, 34, tzinfo=timezone.utc)
         self.assertEqual(job_params[3], expected_ts_param)
-        expected = f'2025-02-14T{start_hour}:12:34+00:00'
-        self.assertEqual(env[1]['value'], expected)
+        expected = f"2025-02-14T{start_hour}:12:34+00:00"
+        self.assertEqual(env[1]["value"], expected)
 
         # then: it should have the expected data-interval-end param parsed
-        expected_data_interval_end_param = datetime(2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc)
+        expected_data_interval_end_param = datetime(
+            2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc
+        )
         self.assertEqual(expected_data_interval_end_param, job_params[5])
-        expected = f'2025-02-14 {start_hour + job_duration_in_hours}:12:34+00:00'
-        self.assertEqual(env[2]['value'], expected)
+        expected = f"2025-02-14 {start_hour + job_duration_in_hours}:12:34+00:00"
+        self.assertEqual(env[2]["value"], expected)
 
         # then: the final result should be the same
         expected = [
-            '--run-date',
+            "--run-date",
             expected_ds_param,
-            '--run-ts',
+            "--run-ts",
             expected_ts_param,
-            '--data-interval-end',
+            "--data-interval-end",
             expected_data_interval_end_param,
         ]
         self.assertEqual(job_params, expected)
 
-    def test__re_render_application_file_template_should_evaluate_methods_called_on_airflow_kwargs(self):
+    def test__re_render_application_file_template_should_evaluate_methods_called_on_airflow_kwargs(
+        self,
+    ):
         # given: a hypothetical airflow instance, where a SparkK8sBuilder has instantiated
         #       a CustomizableSparkKubernetesOperator instance; we emulate the behavior of
         #       re-rendering the application file template
@@ -235,28 +249,28 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # when: CustomizableSparkKubernetesOperator call re-rendered method
         start_hour = 14
         job_duration_in_hours = 1
-        execution_date = pendulum.parse(f'2025-02-14T{start_hour}:12:34.000Z')
+        execution_date = pendulum.parse(f"2025-02-14T{start_hour}:12:34.000Z")
         mock_context = {
-            'execution_date': execution_date,
-            'ds': execution_date.to_date_string(),
-            'ds_nodash': execution_date.to_date_string().replace('-', ''),
-            'data_interval_start': execution_date,
-            'data_interval_end': execution_date.add(hours=job_duration_in_hours),
-            'ts': execution_date.isoformat(),
-            'ts_nodash': execution_date.format('%Y%m%dT%H%M%S')
+            "execution_date": execution_date,
+            "ds": execution_date.to_date_string(),
+            "ds_nodash": execution_date.to_date_string().replace("-", ""),
+            "data_interval_start": execution_date,
+            "data_interval_end": execution_date.add(hours=job_duration_in_hours),
+            "ts": execution_date.isoformat(),
+            "ts_nodash": execution_date.format("%Y%m%dT%H%M%S"),
         }
         self.sut._re_render_application_file_template(context=mock_context)
         res = self.sut.application_file
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(res)
-        spec = res.get('spec', {})
-        env = spec.get('driver', {}).get('env')
-        metadata = res.get('metadata', {})
+        spec = res.get("spec", {})
+        env = spec.get("driver", {}).get("env")
+        metadata = res.get("metadata", {})
 
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 6
-        job_params = res.get('spec', {}).get('arguments', [])
+        job_params = res.get("spec", {}).get("arguments", [])
         self.assertEqual(len(job_params), expected_nr_args)
 
         # then: it should have the expected ds param parsed
@@ -264,40 +278,44 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         self.assertEqual(job_params[1], expected_ds_param)
 
         expected_job_name = f"test-job-3-{mock_context.get('ds')}"
-        self.assertEqual(expected_job_name, metadata.get('name'))
+        self.assertEqual(expected_job_name, metadata.get("name"))
 
         # then: it should have the expected ts param parsed
         expected_ts_param = datetime(2025, 2, 14, start_hour, 12, 34, tzinfo=timezone.utc)
         self.assertEqual(job_params[3], expected_ts_param)
 
         # then: it should have the expected data-interval-end param parsed
-        expected_data_interval_end_param = datetime(2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc)
+        expected_data_interval_end_param = datetime(
+            2025, 2, 14, start_hour + job_duration_in_hours, 12, 34, tzinfo=timezone.utc
+        )
         self.assertEqual(expected_data_interval_end_param, job_params[5])
-        expected = '1739545954'
-        self.assertEqual(env[1]['value'], expected)
-        expected = f'2025-02-14 {start_hour + job_duration_in_hours - 2}:12:34+00:00'
-        self.assertEqual(env[0]['value'], expected)
+        expected = "1739545954"
+        self.assertEqual(env[1]["value"], expected)
+        expected = f"2025-02-14 {start_hour + job_duration_in_hours - 2}:12:34+00:00"
+        self.assertEqual(env[0]["value"], expected)
 
         # then: the final result should be the same
         expected = [
-            '--run-date',
+            "--run-date",
             expected_ds_param,
-            '--run-ts',
+            "--run-ts",
             expected_ts_param,
-            '--data-interval-end',
+            "--data-interval-end",
             expected_data_interval_end_param,
         ]
         self.assertEqual(job_params, expected)
 
-    def test__sanitize_context_value_types_should_parse_stringified_dicts_and_lists(self):
+    def test__sanitize_context_value_types_should_parse_stringified_dicts_and_lists(
+        self,
+    ):
         # given: a context with stringified dicts/lists
         mock_context = {
             "params": {
                 "volumes": ["{'name': 'vol1', 'hostPath': {'path': '/tmp', 'type': 'Directory'}}"],
                 "driver": {
                     "volumeMounts": ["{'name': 'vol1', 'mountPath': '/mnt/vol1'}"],
-                    "sidecars": ["{'name': 'sidecar1', 'image': 'busybox'}"]
-                }
+                    "sidecars": ["{'name': 'sidecar1', 'image': 'busybox'}"],
+                },
             }
         }
         self._set_sut(file_contents=self._test_spark_job_fixture_1())

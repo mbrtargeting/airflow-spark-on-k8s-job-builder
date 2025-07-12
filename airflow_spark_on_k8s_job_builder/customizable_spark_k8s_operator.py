@@ -1,11 +1,13 @@
-
 import ast
-from airflow.utils.context import Context
-from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import SparkKubernetesOperator
 import copy
-from jinja2 import Template
 import logging
 from typing import Any, Dict, List
+
+from airflow.providers.cncf.kubernetes.operators.spark_kubernetes import (
+    SparkKubernetesOperator,
+)
+from airflow.utils.context import Context
+from jinja2 import Template
 
 
 class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
@@ -23,14 +25,14 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
     """
 
     def __init__(
-            self,
-            *,
-            application_file: str,
-            sanitize_context: bool = False,
-            rerender_template: bool = False,
-            **kwargs,
+        self,
+        *,
+        application_file: str,
+        sanitize_context: bool = False,
+        rerender_template: bool = False,
+        **kwargs,
     ):
-        self._job_spec_params = kwargs.get('params')
+        self._job_spec_params = kwargs.get("params")
         self._sanitize_context = sanitize_context
         self._original_application_file = copy.deepcopy(application_file)
         self._rerender_template = rerender_template
@@ -53,7 +55,9 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             pass
         return input_string
 
-    def _process_string_array(self, key: str, core_dict: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
+    def _process_string_array(
+        self, key: str, core_dict: Dict[str, List[Any]]
+    ) -> List[Dict[str, Any]]:
         objects = core_dict.get(key, [])
         if len(objects) > 0:
             new_objects = []
@@ -65,16 +69,20 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
 
     def _sanitize_context_value_types(self, context: Context) -> Context:
         """
-            Workaround for when jinja parsing incorrectly parses maps as strings
-            This issue was observed on Airflow version 2.7.2
+        Workaround for when jinja parsing incorrectly parses maps as strings
+        This issue was observed on Airflow version 2.7.2
         """
         if context.get("params", {}).get("volumes"):
             context["params"]["volumes"] = self._process_string_array("volumes", context["params"])
         if context.get("params", {}).get("driver", {}).get("volumeMounts"):
-            context["params"]["driver"]["volumeMounts"] = self._process_string_array("volumeMounts", context["params"]["driver"])
+            context["params"]["driver"]["volumeMounts"] = self._process_string_array(
+                "volumeMounts", context["params"]["driver"]
+            )
 
         if context.get("params", {}).get("driver", {}).get("sidecars"):
-            context["params"]["driver"]["sidecars"] = self._process_string_array("sidecars", context["params"]["driver"])
+            context["params"]["driver"]["sidecars"] = self._process_string_array(
+                "sidecars", context["params"]["driver"]
+            )
         return context
 
     def execute(self, context: Context):
@@ -87,7 +95,7 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             logging.debug(f"application file before re-rendering is: \n{self.application_file}")
             self._re_render_application_file_template(context)
 
-        logging.info(f"Submitting the following Spark Application to Spark Operator: \n{self.application_file}")
+        logging.info(
+            f"Submitting the following Spark Application to Spark Operator: \n{self.application_file}"
+        )
         return super().execute(context)
-
-
