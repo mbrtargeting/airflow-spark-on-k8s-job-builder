@@ -27,6 +27,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install pip-tools build twine
 
+      - name: Validate version matches tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          SETUP_VERSION=$(python setup.py --version)
+          echo "Tag version: $TAG_VERSION"
+          echo "Setup.py version: $SETUP_VERSION"
+          if [ "$TAG_VERSION" != "$SETUP_VERSION" ]; then
+            echo "Version mismatch: setup.py ($SETUP_VERSION) != tag ($TAG_VERSION)"
+            exit 1
+          fi
+
       - name: Clean up previous builds
         id: clean-build
         run: |
