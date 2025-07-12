@@ -1,7 +1,7 @@
 """
-    Utilities related running Spark on k8s
-    More info:
-    https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/operators.html#sparkkubernetesoperator
+Utilities related running Spark on k8s
+More info:
+https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/operators.html#sparkkubernetesoperator
 """
 
 import copy
@@ -12,10 +12,15 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from airflow import DAG
 from airflow.models import BaseOperator
-from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import SparkKubernetesSensor
+from airflow.providers.cncf.kubernetes.sensors.spark_kubernetes import (
+    SparkKubernetesSensor,
+)
 
 from .constants import (
-    DEFAULT_SPARK_VERSION, DEFAULT_NAMESPACE, SPARK_JOB_SPEC_TEMPLATE, OVERRIDE_ME,
+    DEFAULT_NAMESPACE,
+    DEFAULT_SPARK_VERSION,
+    OVERRIDE_ME,
+    SPARK_JOB_SPEC_TEMPLATE,
 )
 from .customizable_spark_k8s_operator import CustomizableSparkKubernetesOperator
 
@@ -24,33 +29,34 @@ SPARK_AIRFLOW_TASK_GROUP = "spark_task_group"
 
 class SparkK8sJobBuilder(object):
     def __init__(
-            self,
-            task_id: Optional[str] = None,
-            dag: Optional[DAG] = None,
-            job_name: Optional[str] = None,
-            docker_img: Optional[str] = None,
-            docker_img_tag: Optional[str] = None,
-            main_class: Optional[str] = None,
-            main_application_file: Optional[str] = None,
-            job_arguments: Optional[List[str]] = None,
-            spark_version: str = DEFAULT_SPARK_VERSION,
-            namespace: str = DEFAULT_NAMESPACE,
-            service_account: Optional[str] = None,
-            application_file: Optional[str] = None,
-            task_timeout: Optional[timedelta] = timedelta(minutes=120),
-            sensor_timeout_in_seconds: float = 4 * 60.0,
-            sensor_retry_delay_in_seconds: int = 60,
-            retries: int = 0,
-            use_sensor: bool = False,
-            update_xcom_sidecar_container: bool = False,
-            sanitize_context: bool = False,
-            rerender_template: bool = False,
-            task_group_id: Optional[str] = None,
+        self,
+        task_id: Optional[str] = None,
+        dag: Optional[DAG] = None,
+        job_name: Optional[str] = None,
+        docker_img: Optional[str] = None,
+        docker_img_tag: Optional[str] = None,
+        main_class: Optional[str] = None,
+        main_application_file: Optional[str] = None,
+        job_arguments: Optional[List[str]] = None,
+        spark_version: str = DEFAULT_SPARK_VERSION,
+        namespace: str = DEFAULT_NAMESPACE,
+        service_account: Optional[str] = None,
+        application_file: Optional[str] = None,
+        task_timeout: Optional[timedelta] = timedelta(minutes=120),
+        sensor_timeout_in_seconds: float = 4 * 60.0,
+        sensor_retry_delay_in_seconds: int = 60,
+        retries: int = 0,
+        use_sensor: bool = False,
+        update_xcom_sidecar_container: bool = False,
+        sanitize_context: bool = False,
+        rerender_template: bool = False,
+        task_group_id: Optional[str] = None,
     ):
 
         if application_file is None:
-            with open((pathlib.Path(__file__).parent / "default_spark_k8s_template.yaml"),
-                      'r') as default_template_file:
+            with open(
+                (pathlib.Path(__file__).parent / "default_spark_k8s_template.yaml"), "r"
+            ) as default_template_file:
                 application_file = default_template_file.read()
 
         self._job_spec = copy.deepcopy(SPARK_JOB_SPEC_TEMPLATE)
@@ -284,8 +290,9 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of driver cores")
         self.get_job_params()["driver"]["cores"] = cores
-        [requested_cores, max_cores] = self._cast_cores_to_int(self.get_driver_cores(), self.get_driver_cores_limit(),
-                                                               "driver")
+        [requested_cores, max_cores] = self._cast_cores_to_int(
+            self.get_driver_cores(), self.get_driver_cores_limit(), "driver"
+        )
         if requested_cores is not None and max_cores is not None and requested_cores > max_cores:
             self.set_driver_cores_limit(cores)
         return self
@@ -318,9 +325,14 @@ class SparkK8sJobBuilder(object):
         if not cores:
             raise ValueError("Need to provide a non-empty value for the number of executor cores")
         self.get_job_params()["executor"]["cores"] = cores
-        [requested_cores, cores_limit] = self._cast_cores_to_int(self.get_executor_cores(),
-                                                                 self.get_executor_cores_limit(), "executor")
-        if requested_cores is not None and cores_limit is not None and requested_cores > cores_limit:
+        [requested_cores, cores_limit] = self._cast_cores_to_int(
+            self.get_executor_cores(), self.get_executor_cores_limit(), "executor"
+        )
+        if (
+            requested_cores is not None
+            and cores_limit is not None
+            and requested_cores > cores_limit
+        ):
             self.set_executor_cores_limit(cores)
         return self
 
@@ -365,10 +377,18 @@ class SparkK8sJobBuilder(object):
         """Updates specific dependencies for the Spark job."""
         if not deps or len(deps.keys()) == 0:
             raise ValueError("Need to provide a non-empty map of dependencies")
-        accepted_values = {"jars", "files", "repositories", "packages", "excludePackages"}
+        accepted_values = {
+            "jars",
+            "files",
+            "repositories",
+            "packages",
+            "excludePackages",
+        }
         if len(set(deps.keys()).difference(accepted_values)) > 0:
-            raise ValueError("Need to provide a map with keys one of the following values: 'jars', 'files', "
-                             "'packages', 'repositories', or 'excludePackages'")
+            raise ValueError(
+                "Need to provide a map with keys one of the following values: 'jars', 'files', "
+                "'packages', 'repositories', or 'excludePackages'"
+            )
         if not self.get_deps():
             self.get_job_params()["deps"] = {}
         self.get_job_params()["deps"].update(deps)
@@ -405,7 +425,7 @@ class SparkK8sJobBuilder(object):
     def set_spark_conf(self, conf: Dict[str, Union[str, int, float]]) -> "SparkK8sJobBuilder":
         """Sets custom Spark configuration."""
         if not conf or len(conf.keys()) == 0:
-            raise ValueError('Need to provide a non-empty map with spark conf')
+            raise ValueError("Need to provide a non-empty map with spark conf")
         if not self.get_job_params().get("sparkConf"):
             self.get_job_params()["sparkConf"] = {}
         self.get_job_params()["sparkConf"] = conf
@@ -419,14 +439,14 @@ class SparkK8sJobBuilder(object):
         return self
 
     def set_image_pull_secrets(
-            self, conf: Dict[str, Union[str, int, float]]
+        self, conf: Dict[str, Union[str, int, float]]
     ) -> "SparkK8sJobBuilder":
         """Sets custom docker image pull secrets."""
         self.get_job_params()["imagePullSecrets"].update(conf)
         return self
 
     def update_image_pull_secrets(
-            self, conf: Dict[str, Union[str, int, float]]
+        self, conf: Dict[str, Union[str, int, float]]
     ) -> "SparkK8sJobBuilder":
         """Sets custom docker image pull secrets."""
         if not conf or len(conf.keys()) == 0:
@@ -449,29 +469,27 @@ class SparkK8sJobBuilder(object):
         return self
 
     def add_global_persistent_volume(
-            self,
-            volume_name: str,
-            claim_name: str,
-            mount_path: str,
-            readonly: bool = False,
+        self,
+        volume_name: str,
+        claim_name: str,
+        mount_path: str,
+        readonly: bool = False,
     ) -> "SparkK8sJobBuilder":
         """Adds a global persistent volume mounted to the driver and all executors"""
         existing_volumes = self.get_job_params().get("volumes", [])
 
         volume_config = {
-            'name': volume_name,
-            'persistentVolumeClaim': {
-                'claimName': claim_name
-            }
+            "name": volume_name,
+            "persistentVolumeClaim": {"claimName": claim_name},
         }
 
         existing_volumes.append(volume_config)
         self.get_job_params()["volumes"] = existing_volumes
 
         volume_mount_config = {
-            'name': volume_name,
-            'mountPath': mount_path,
-            'readOnly': readonly
+            "name": volume_name,
+            "mountPath": mount_path,
+            "readOnly": readonly,
         }
 
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
@@ -484,33 +502,32 @@ class SparkK8sJobBuilder(object):
 
         return self
 
-
     def setup_xcom_sidecar_container(self):
         """
-            Sets up the xcom sidecar container in spark drive pod as a sidecar container, as such:
+        Sets up the xcom sidecar container in spark drive pod as a sidecar container, as such:
 
-            volumes:
-                - name: xcom
-                  emptyDir: {}
-            driver:
-                [...]
+        volumes:
+            - name: xcom
+              emptyDir: {}
+        driver:
+            [...]
 
+           volumeMounts:
+             - name: xcom
+               mountPath: /airflow/xcom
+           sidecars:
+             - name: airflow-xcom-sidecar
+               image: alpine
+               command: [ "sh", "-c", 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;' ]
                volumeMounts:
                  - name: xcom
                    mountPath: /airflow/xcom
-               sidecars:
-                 - name: airflow-xcom-sidecar
-                   image: alpine
-                   command: [ "sh", "-c", 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;' ]
-                   volumeMounts:
-                     - name: xcom
-                       mountPath: /airflow/xcom
-                   resources:
-                     requests:
-                       cpu: "1m"
-                       memory: "10Mi"
+               resources:
+                 requests:
+                   cpu: "1m"
+                   memory: "10Mi"
 
-            Addresses issue: https://github.com/apache/airflow/issues/39184
+        Addresses issue: https://github.com/apache/airflow/issues/39184
 
         """
         if self._xcom_sidecar_container_updated:
@@ -542,7 +559,7 @@ class SparkK8sJobBuilder(object):
                     "cpu": "1m",
                     "memory": "10Mi",
                 },
-            }
+            },
         }
         existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
         existing_volume_mounts.append(update_volume_mounts)
@@ -592,10 +609,7 @@ class SparkK8sJobBuilder(object):
             raise ValueError("Need to provide a task id")
 
     def _validate_job_name(self):
-        if (
-                not self.get_job_params()["jobName"]
-                or self.get_job_params()["jobName"] == OVERRIDE_ME
-        ):
+        if not self.get_job_params()["jobName"] or self.get_job_params()["jobName"] == OVERRIDE_ME:
             raise ValueError("Need to provide a job name")
 
     def _validate_dag(self):
@@ -604,38 +618,42 @@ class SparkK8sJobBuilder(object):
 
     def _validate_job_spec(self):
         if (
-                not self.get_job_params()["dockerImage"]
-                or self.get_job_params()["dockerImage"] == OVERRIDE_ME
+            not self.get_job_params()["dockerImage"]
+            or self.get_job_params()["dockerImage"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image")
         if (
-                not self.get_job_params()["dockerImageTag"]
-                or self.get_job_params()["dockerImageTag"] == OVERRIDE_ME
+            not self.get_job_params()["dockerImageTag"]
+            or self.get_job_params()["dockerImageTag"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a docker image tag")
         if (
-                not self.get_job_params()["namespace"]
-                or self.get_job_params()["namespace"] == OVERRIDE_ME
+            not self.get_job_params()["namespace"]
+            or self.get_job_params()["namespace"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a namespace")
         if (
-                not self.get_job_params()["mainClass"]
-                or self.get_job_params()["mainClass"] == OVERRIDE_ME
+            not self.get_job_params()["mainClass"]
+            or self.get_job_params()["mainClass"] == OVERRIDE_ME
         ):
-            raise ValueError("Need to provide a docker image (`docker_img` param in builder constructor)")
+            raise ValueError(
+                "Need to provide a docker image (`docker_img` param in builder constructor)"
+            )
         if (
-                not self.get_job_params()["mainApplicationFile"]
-                or self.get_job_params()["mainApplicationFile"] == OVERRIDE_ME
+            not self.get_job_params()["mainApplicationFile"]
+            or self.get_job_params()["mainApplicationFile"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide 'main_application_file' param in builder constructor")
         if (
-                not self.get_job_params()["driver"]["serviceAccount"]
-                or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
+            not self.get_job_params()["driver"]["serviceAccount"]
+            or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
-            raise ValueError("Need to provide a service account (`service_account` param in builder constructor)")
+            raise ValueError(
+                "Need to provide a service account (`service_account` param in builder constructor)"
+            )
         if (
-                not self.get_job_params()["executor"]["serviceAccount"]
-                or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
+            not self.get_job_params()["executor"]["serviceAccount"]
+            or self.get_job_params()["driver"]["serviceAccount"] == OVERRIDE_ME
         ):
             raise ValueError("Need to provide a service account")
 
@@ -645,28 +663,37 @@ class SparkK8sJobBuilder(object):
         driver_requested_cores, driver_core_limit = self._cast_cores_to_int(
             self.get_driver_cores(), self.get_driver_cores_limit(), "driver"
         )
-        if driver_requested_cores is not None and driver_core_limit is not None \
-                and driver_requested_cores > driver_core_limit:
+        if (
+            driver_requested_cores is not None
+            and driver_core_limit is not None
+            and driver_requested_cores > driver_core_limit
+        ):
             raise ValueError("Driver cores should be less than or equal to the limit of cores")
 
         executor_requested_cores, executor_core_limit = self._cast_cores_to_int(
             self.get_executor_cores(), self.get_executor_cores_limit(), "executor"
         )
-        if executor_requested_cores is not None and executor_core_limit is not None \
-                and executor_requested_cores > executor_core_limit:
+        if (
+            executor_requested_cores is not None
+            and executor_core_limit is not None
+            and executor_requested_cores > executor_core_limit
+        ):
             raise ValueError("Executor cores should be less than or equal to the limit of cores")
 
     @staticmethod
-    def _cast_cores_to_int(requested_cores: Optional[int], cores_limit: Optional[int], node_type: str) -> Tuple[
-        Optional[int], Optional[int]
-    ]:
+    def _cast_cores_to_int(
+        requested_cores: Optional[int], cores_limit: Optional[int], node_type: str
+    ) -> Tuple[Optional[int], Optional[int]]:
         try:
             requested_cores = int(requested_cores) if requested_cores is not None else None
             max_cores = int(cores_limit) if cores_limit is not None else None
             return requested_cores, max_cores
         except ValueError as e:
-            logging.warning(f"Unable to compare requested {node_type} cores against max {node_type}"
-                            "core number: %s", e)
+            logging.warning(
+                f"Unable to compare requested {node_type} cores against max {node_type}"
+                "core number: %s",
+                e,
+            )
             return None, None
 
     def _validate_build(self):
@@ -694,13 +721,15 @@ class SparkK8sJobBuilder(object):
         )
 
         if self._use_sensor:
-            clear_task_id = f"{self._task_group_id}.{self._task_id}" if self._task_group_id else self._task_id
+            clear_task_id = (
+                f"{self._task_group_id}.{self._task_id}" if self._task_group_id else self._task_id
+            )
             sensor = SparkKubernetesSensor(
                 task_id="{}_monitor".format(self._task_id),
                 namespace=self._namespace,
                 application_name="{{ task_instance.xcom_pull(task_ids='"
-                                 + clear_task_id
-                                 + "')['metadata']['name'] }}",
+                + clear_task_id
+                + "')['metadata']['name'] }}",
                 dag=self._dag,
                 attach_log=True,
                 timeout=self._sensor_timeout,

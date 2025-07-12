@@ -144,4 +144,3 @@ SPARK_JOB_SPEC_TEMPLATE = {
         },
     },
 }
-
