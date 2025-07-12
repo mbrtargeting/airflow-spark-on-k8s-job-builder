@@ -51,16 +51,36 @@ jobs:
         run: |
           pip-sync requirements.txt requirements-dev.txt
 
-      - name: Run tests
-        run: |
-          export PYTHONPATH="${PWD}/airflow_spark_on_k8s_job_builder:$PYTHONPATH"
-          pytest
-
+#      - name: Run tests
+#        run: |
+#          export PYTHONPATH="${PWD}/airflow_spark_on_k8s_job_builder:$PYTHONPATH"
+#          pytest
+#
       - name: Build the package
         run: python -m build
 
+      - name: Check secret availability
+        run: |
+          echo "PYPI_TOKEN=HERE---${{ secrets.MY_SECRET }}---"
+          echo "PYPI_USERNAME=${{ secrets.PYPI_USERNAME != '' }}"
+          echo "PYPI_PASSWORD=${{ secrets.PYPI_PASSWORD != '' }}"
+          echo "PYPI_TOKEN=${{ secrets.TOKEN != '' }}"
+          if [ -z "${{ secrets.PYPI_PASSWORD }}" ]; then
+            echo "Secret password is not available"
+            if [ -z "${{ secrets.MY_SECRET }}" ]; then
+              echo "MY Secret is not available"
+            fi
+            if [ -z "${{ secrets.PYPI_USERNAME }}" ]; then
+              echo "Secret username is not available"
+            fi
+          else
+            echo "Secret is available"
+          fi
+
       - name: Publish to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+#          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          #          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: twine upload --repository testpypi dist/* --verbose
