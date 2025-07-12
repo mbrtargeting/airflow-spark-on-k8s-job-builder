@@ -21,23 +21,32 @@ jobs:
         with:
           python-version: 3.9.13
 
-      # Step 3: Install dependencies
       - name: Install dependencies
+        id: install-dependencies
         run: |
+          sudo apt-get update && sudo apt-get install gcc build-essential libsasl2-dev -y
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install pip-tools build twine
 
-      # Step 4: Run tests
+      - name: Clean up previous builds
+        id: clean-build
+        run: |
+          rm -rf build/* *.egg-info .pytest_cache dist build
+          find . -name "*.pyc" -delete
+
+      - name: Install python dependencies
+        id: install-py-dependencies
+        run: |
+          pip-sync requirements.txt requirements-dev.txt
+
       - name: Run tests
         run: |
-          pip install pytest
+          export PYTHONPATH="${PWD}/airflow_spark_on_k8s_job_builder:$PYTHONPATH"
           pytest
 
-      # Step 5: Build the package
       - name: Build the package
         run: python -m build
 
-      # Step 6: Publish to PyPI
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
