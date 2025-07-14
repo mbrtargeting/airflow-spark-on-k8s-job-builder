@@ -32,7 +32,7 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
         rerender_template: bool,
         **kwargs,
     ):
-        self._job_spec_params = kwargs.get("params")
+        self._job_spec_params = {"params": kwargs.get("params")}
         self._sanitize_context = sanitize_context
         self._original_application_file = copy.deepcopy(application_file)
         self._rerender_template = rerender_template
