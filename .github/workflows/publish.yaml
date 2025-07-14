@@ -6,6 +6,10 @@ on:
 #    tags:
 #      - "v*.*.*"  # Trigger on version tags like v1.0.0
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
