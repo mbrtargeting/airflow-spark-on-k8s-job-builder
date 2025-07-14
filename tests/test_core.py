@@ -1,9 +1,10 @@
 import copy
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict
 
+import pendulum
 from airflow import DAG
 from airflow.utils import yaml
 from jinja2 import Environment, StrictUndefined
@@ -1129,3 +1130,152 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             ],
             spark_operator.params["executor"]["volumeMounts"],
         )
+
+    def test_re_rendering_template_should_leave_no_jinja_vars_dangling(self):
+        # given: a standard SUT with the following special settings
+        job_arguments = [
+            "--run-date",
+            "{{ ds }}",
+            "--run-ts",
+            "{{ ts }}",
+            "--data-interval-end",
+            "{{ data_interval_end }}",
+        ]
+        env_vars = [
+            {"name": "RUN_DATE", "value": "{{ ds }}"},
+            {"name": "RUN_TS", "value": "{{ ts }}"},
+            {"name": "DATA_INTERVAL_END", "value": "{{ data_interval_end.timestamp() }}"},
+            {
+                "name": "DATA_INTERVAL_START",
+                "value": "{{ data_interval_start.to_iso8601_string() }}",
+            },
+        ]
+        # given: the SUT has instantiated the CustomizableSparkK8sOperator
+        operator = self.sut.set_job_arguments(job_arguments).set_env_vars(env_vars).build()[0]
+        # given: a mock airflow execution context
+        start_hour = 14
+        job_duration_in_hours = 1
+        year = 2025
+        month = "02"
+        day = 14
+        minute = 12
+        second = 34
+        test_date = date(year, int(month), day)
+        execution_date = pendulum.parse(f"{year}-{month}-{day}T{start_hour}:12:34.000Z")
+        ts_nodash = execution_date.format("YYYYMMDDTHHmmss")
+        mock_context = {
+            "task_instance": "super_dag_job",
+            "execution_date": execution_date,
+            "ds": execution_date.to_date_string(),
+            "ds_nodash": execution_date.to_date_string().replace("-", ""),
+            "data_interval_start": execution_date,
+            "data_interval_end": execution_date.add(hours=job_duration_in_hours),
+            "ts": execution_date.isoformat(),
+            "ts_nodash": ts_nodash,
+        }
+
+        # when: re-rendering the template with context
+        try:
+            # note: for whatever reason, operator does not render the template outside the task instance context,
+            # so we need to artificially execute it to trigger the rendering
+            operator._re_render_application_file_template(context=mock_context)
+            operator.execute(context=mock_context)
+        except Exception as e:
+            # then: it should only fail when trying to submit the job to spark-operator
+            expected_error_msg = "Invalid kube-config file"
+            if expected_error_msg not in str(e):
+                raise AssertionError(f"Expected error message not found. Got: {e}")
+
+        # then: it should double-render the application file
+        res = operator.application_file
+
+        # then: it should not leave any jinja variables dangling
+        self.assertNotIn("{{ params.jobName }}", res)
+        self.assertNotIn("{{ params.namespace }}", res)
+        self.assertNotIn("{{ params.sparkConf }}", res)
+        self.assertNotIn("{{ params.imagePullSecrets }}", res)
+        self.assertNotIn("{{ params.language }}", res)
+        self.assertNotIn("{{ params.dockerImage }}", res)
+        self.assertNotIn("{{ params.dockerImageTag }}", res)
+        self.assertNotIn("{{ params.mainApplicationFile }}", res)
+        self.assertNotIn("{{ params.sparkVersion }}", res)
+        self.assertNotIn("{{ params.jobArguments }}", res)
+        self.assertNotIn("{{ params.volumes }}", res)
+        self.assertNotIn("{{ params.driver.affinity }}", res)
+        self.assertNotIn("{{ params.driver.tolerations }}", res)
+        self.assertNotIn("{{ params.driver.annotations }}", res)
+        self.assertNotIn("{{ params.driver.cores }}", res)
+        self.assertNotIn("{{ params.driver.memory }}", res)
+        self.assertNotIn("{{ params.driver.labels }}", res)
+        self.assertNotIn("{{ params.driver.serviceAccount }}", res)
+        self.assertNotIn("{{ params.driver.secrets }}", res)
+        self.assertNotIn("{{ params.driver.env }}", res)
+        self.assertNotIn("{{ params.driver.volumeMounts }}", res)
+        self.assertNotIn("{{ params.driver.sideCars }}", res)
+
+        self.assertNotIn("{{ params.executor.affinity }}", res)
+        self.assertNotIn("{{ params.executor.tolerations }}", res)
+        self.assertNotIn("{{ params.executor.annotations }}", res)
+        self.assertNotIn("{{ params.executor.cores }}", res)
+        self.assertNotIn("{{ params.executor.memory }}", res)
+        self.assertNotIn("{{ params.executor.labels }}", res)
+        self.assertNotIn("{{ params.executor.serviceAccount }}", res)
+        self.assertNotIn("{{ params.executor.secrets }}", res)
+        self.assertNotIn("{{ params.executor.env }}", res)
+        self.assertNotIn("{{ params.executor.volumeMounts }}", res)
+        self.assertNotIn("{{ params.executor.sideCars }}", res)
+
+        # then: it should be able to be parsed without failures
+        res = yaml.safe_load(res)
+        spec = res.get("spec", {})
+        env = spec.get("driver", {}).get("env")
+        metadata = res.get("metadata", {})
+
+        # then: it should have exactly the expected nr of job arguments
+        expected_nr_args = 6
+        job_params = res.get("spec", {}).get("arguments", [])
+        self.assertEqual(len(job_params), expected_nr_args)
+
+        # then: it should have the expected ds param parsed
+        expected_ds_param = test_date.strftime("%Y-%m-%d")
+        self.assertEqual(expected_ds_param, job_params[1])
+
+        expected_job_name = f"{self.job_name}-{ts_nodash.lower()}-"
+        self.assertEqual(expected_job_name, metadata.get("name"))
+
+        # then: it should have the expected ts param parsed
+        expected_ts_param = datetime(
+            year, int(month), day, start_hour, minute, second, tzinfo=timezone.utc
+        ).isoformat()
+        self.assertEqual(expected_ts_param, job_params[3])
+
+        # then: it should have the expected data-interval-end param parsed
+        expected_data_interval_end_param = datetime(
+            year,
+            int(month),
+            day,
+            start_hour + job_duration_in_hours,
+            minute,
+            second,
+            tzinfo=timezone.utc,
+        )
+        dt_str = expected_data_interval_end_param.strftime("%Y-%m-%d %H:%M:%S%z")
+        expected_data_interval_end_str_param = f"{dt_str[:-2]}:{dt_str[-2:]}"
+        self.assertEqual(expected_data_interval_end_str_param, job_params[5])
+
+        # then: it should have the expected environment variables params parsed
+        self.assertEqual(expected_ds_param, env[0]["value"])
+        self.assertEqual(expected_ts_param, env[1]["value"])
+        expected_timestamp = f"{expected_data_interval_end_param.timestamp()}"
+        self.assertEqual(expected_timestamp, env[2]["value"])
+
+        # then: the final result should be the same
+        expected = [
+            "--run-date",
+            expected_ds_param,
+            "--run-ts",
+            expected_ts_param,
+            "--data-interval-end",
+            expected_data_interval_end_str_param,
+        ]
+        self.assertEqual(expected, job_params)
