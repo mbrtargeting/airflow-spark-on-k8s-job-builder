@@ -91,8 +91,13 @@ class CustomizableSparkKubernetesOperator(SparkKubernetesOperator):
             context = self._sanitize_context_value_types(context)
             logging.debug(f"context after being updated is: \n{context}")
 
+        logging.debug(
+            f"application file before any rendering is: \n{self._original_application_file}"
+        )
+        logging.debug(
+            f"application file after first (default) rendering is: \n{self.application_file}"
+        )
         if self._rerender_template:
-            logging.debug(f"application file before re-rendering is: \n{self.application_file}")
             self._re_render_application_file_template(context)
 
         logging.info(
