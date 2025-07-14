@@ -158,11 +158,11 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             "--run-date",
             expected_ds_param,
         ]
-        self.assertEqual(job_params, expected)
+        self.assertEqual(expected, job_params)
 
         # then: it should parse params.env
         expected = self.job_name
-        self.assertEqual(env[0]["value"], expected)
+        self.assertEqual(expected, env[0]["value"])
 
     def test__re_render_application_file_template_should_evaluate_default_injected_params_everywhere_in_the_template(
         self,
@@ -200,23 +200,23 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 6
         job_params = spec.get("arguments", [])
-        self.assertEqual(len(job_params), expected_nr_args)
+        self.assertEqual(expected_nr_args, len(job_params))
 
         # then: it should have the expected ds param parsed
         expected_ds_param = date(2025, 2, 14)
-        self.assertEqual(job_params[1], expected_ds_param)
+        self.assertEqual(expected_ds_param, job_params[1])
         expected = "2025-02-14"
-        self.assertEqual(env[0]["value"], expected)
+        self.assertEqual(expected, env[0]["value"])
 
         # then: it should have correctly inferred the job name
         expected_job_name = f"test-job-2-{mock_context.get('ds')}"
-        self.assertEqual(metadata.get("name"), expected_job_name)
+        self.assertEqual(expected_job_name, metadata.get("name"))
 
         # then: it should have the expected ts param parsed
         expected_ts_param = datetime(2025, 2, 14, start_hour, 12, 34, tzinfo=timezone.utc)
-        self.assertEqual(job_params[3], expected_ts_param)
+        self.assertEqual(expected_ts_param, job_params[3])
         expected = f"2025-02-14T{start_hour}:12:34+00:00"
-        self.assertEqual(env[1]["value"], expected)
+        self.assertEqual(expected, env[1]["value"])
 
         # then: it should have the expected data-interval-end param parsed
         expected_data_interval_end_param = datetime(
@@ -224,7 +224,7 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         )
         self.assertEqual(expected_data_interval_end_param, job_params[5])
         expected = f"2025-02-14 {start_hour + job_duration_in_hours}:12:34+00:00"
-        self.assertEqual(env[2]["value"], expected)
+        self.assertEqual(expected, env[2]["value"])
 
         # then: the final result should be the same
         expected = [
@@ -235,7 +235,7 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             "--data-interval-end",
             expected_data_interval_end_param,
         ]
-        self.assertEqual(job_params, expected)
+        self.assertEqual(expected, job_params)
 
     def test__re_render_application_file_template_should_evaluate_methods_called_on_airflow_kwargs(
         self,
@@ -273,18 +273,18 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         # then: it should have exactly the expected nr of job arguments
         expected_nr_args = 6
         job_params = res.get("spec", {}).get("arguments", [])
-        self.assertEqual(len(job_params), expected_nr_args)
+        self.assertEqual(expected_nr_args, len(job_params))
 
         # then: it should have the expected ds param parsed
         expected_ds_param = date(2025, 2, 14)
-        self.assertEqual(job_params[1], expected_ds_param)
+        self.assertEqual(expected_ds_param, job_params[1])
 
         expected_job_name = f"test-job-3-{mock_context.get('ds')}"
         self.assertEqual(expected_job_name, metadata.get("name"))
 
         # then: it should have the expected ts param parsed
         expected_ts_param = datetime(2025, 2, 14, start_hour, 12, 34, tzinfo=timezone.utc)
-        self.assertEqual(job_params[3], expected_ts_param)
+        self.assertEqual(expected_ts_param, job_params[3])
 
         # then: it should have the expected data-interval-end param parsed
         expected_data_interval_end_param = datetime(
@@ -292,9 +292,9 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
         )
         self.assertEqual(expected_data_interval_end_param, job_params[5])
         expected = "1739545954"
-        self.assertEqual(env[1]["value"], expected)
+        self.assertEqual(expected, env[1]["value"])
         expected = f"2025-02-14 {start_hour + job_duration_in_hours - 2}:12:34+00:00"
-        self.assertEqual(env[0]["value"], expected)
+        self.assertEqual(expected, env[0]["value"])
 
         # then: the final result should be the same
         expected = [
@@ -305,7 +305,7 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
             "--data-interval-end",
             expected_data_interval_end_param,
         ]
-        self.assertEqual(job_params, expected)
+        self.assertEqual(expected, job_params)
 
     def test__sanitize_context_value_types_should_parse_stringified_dicts_and_lists(
         self,
@@ -327,11 +327,11 @@ class TestCustomizableSparkKubernetesOperator(TestCase):
 
         # then: all stringified dicts/lists should be parsed to dicts
         self.assertIsInstance(sanitized["params"]["volumes"][0], dict)
-        self.assertEqual(sanitized["params"]["volumes"][0]["name"], "vol1")
+        self.assertEqual("vol1", sanitized["params"]["volumes"][0]["name"])
         self.assertIsInstance(sanitized["params"]["driver"]["volumeMounts"][0], dict)
-        self.assertEqual(sanitized["params"]["driver"]["volumeMounts"][0]["mountPath"], "/mnt/vol1")
+        self.assertEqual("/mnt/vol1", sanitized["params"]["driver"]["volumeMounts"][0]["mountPath"])
         self.assertIsInstance(sanitized["params"]["driver"]["sidecars"][0], dict)
-        self.assertEqual(sanitized["params"]["driver"]["sidecars"][0]["name"], "sidecar1")
+        self.assertEqual("sidecar1", sanitized["params"]["driver"]["sidecars"][0]["name"])
 
     @staticmethod
     def _test_spark_job_fixture_1() -> str:
