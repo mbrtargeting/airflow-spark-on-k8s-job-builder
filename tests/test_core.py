@@ -98,11 +98,9 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         params["task_instance"]["try_number"] = 1
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
-        print("rendered content {}", rendered_content)
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
-        print(res)
         self.assertEqual("sparkoperator.k8s.io/v1beta2", res.get("apiVersion"))
         self.assertEqual("SparkApplication", res.get("kind"))
         self.assertEqual(f"{self.job_name}-{nodash}-1", res.get("metadata").get("name"))
@@ -155,11 +153,9 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         # when: it renders with the default config into a yaml string
         rendered_content = template.render(params)
-        print("rendered content {}", rendered_content)
 
         # then: it should be able to be parsed without failures
         res = yaml.safe_load(rendered_content)
-        print(res)
         self.assertEqual("sparkoperator.k8s.io/v1beta2", res.get("apiVersion"))
         self.assertEqual("SparkApplication", res.get("kind"))
         self.assertEqual(f"{self.job_name}-{nodash}-1", res.get("metadata").get("name"))
@@ -1034,7 +1030,6 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         # when: Building the operator
         with self.assertRaises(ValueError) as context:
-            print(f"... and job name final is {builder._job_spec['params']['jobName']}")
             builder.build()
 
         # then: it should raise ValueError for missing job name
