@@ -1064,25 +1064,25 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         volume_mounts = driver_spec["volumeMounts"]
         sidecars = driver_spec["sidecars"]
 
-        self.assertEqual(len(volume_mounts), 1)
-        self.assertEqual(volume_mounts[0]["name"], "xcom")
-        self.assertEqual(volume_mounts[0]["mountPath"], "/airflow/xcom")
+        self.assertEqual(1, len(volume_mounts))
+        self.assertEqual("xcom", volume_mounts[0]["name"])
+        self.assertEqual("/airflow/xcom", volume_mounts[0]["mountPath"])
 
-        self.assertEqual(len(sidecars), 1)
-        self.assertEqual(sidecars[0]["name"], "airflow-xcom-sidecar")
-        self.assertEqual(sidecars[0]["image"], "alpine")
+        self.assertEqual(1, len(sidecars))
+        self.assertEqual("airflow-xcom-sidecar", sidecars[0]["name"])
+        self.assertEqual("alpine", sidecars[0]["image"])
         self.assertEqual(
-            sidecars[0]["command"],
             [
                 "sh",
                 "-c",
                 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;',
             ],
+            sidecars[0]["command"],
         )
-        self.assertEqual(sidecars[0]["volumeMounts"][0]["name"], "xcom")
-        self.assertEqual(sidecars[0]["volumeMounts"][0]["mountPath"], "/airflow/xcom")
-        self.assertEqual(sidecars[0]["resources"]["requests"]["cpu"], "1m")
-        self.assertEqual(sidecars[0]["resources"]["requests"]["memory"], "10Mi")
+        self.assertEqual("xcom", sidecars[0]["volumeMounts"][0]["name"])
+        self.assertEqual("/airflow/xcom", sidecars[0]["volumeMounts"][0]["mountPath"])
+        self.assertEqual("1m", sidecars[0]["resources"]["requests"]["cpu"])
+        self.assertEqual("10Mi", sidecars[0]["resources"]["requests"]["memory"])
 
     def test_global_volume_mount(self):
         # given: A valid SparkK8sJobBuilder setup
