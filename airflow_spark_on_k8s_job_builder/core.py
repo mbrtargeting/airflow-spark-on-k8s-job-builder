@@ -456,16 +456,19 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["imagePullSecrets"].update(conf)
         return self
 
-    def set_secrets(self, conf: Dict[str, Union[str, int, float]]) -> "SparkK8sJobBuilder":
+    def set_secrets(self, conf: List[Dict[str, Union[str, int, float]]]) -> "SparkK8sJobBuilder":
         """Sets custom secrets to be injected in the driver + executor nodes."""
-        if not conf or len(conf.keys()) == 0:
-            raise ValueError("Need to provide a non-empty map with secrets")
+        if not conf or len(conf) == 0:
+            raise ValueError("Need to provide a non-empty list of maps with secrets")
+        for c in conf:
+            if len(c.keys()) == 0:
+                raise ValueError("Each secret must have at least one element")
         if not self.get_job_params()["driver"].get("secrets"):
-            self.get_job_params()["driver"]["secrets"] = {}
-        self.get_job_params()["driver"]["secrets"].update(conf)
+            self.get_job_params()["driver"]["secrets"] = []
+        self.get_job_params()["driver"]["secrets"] += conf
         if not self.get_job_params()["executor"].get("secrets"):
-            self.get_job_params()["executor"]["secrets"] = {}
-        self.get_job_params()["executor"]["secrets"].update(conf)
+            self.get_job_params()["executor"]["secrets"] = []
+        self.get_job_params()["executor"]["secrets"] += conf
         return self
 
     def add_global_persistent_volume(
