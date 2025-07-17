@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="airflow-spark-on-k8s-job-builder",
-    version="0.4.3",
+    version="0.4.4",
     author="Stroeer Labs Data Engineering",
     author_email="diogo.aurelio@stroeer.de",
     description="A library to limit the amount of unnecessary boilerplate code required when launching Spark Jobs "
