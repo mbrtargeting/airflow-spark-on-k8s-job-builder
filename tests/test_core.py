@@ -1279,3 +1279,39 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             expected_data_interval_end_str_param,
         ]
         self.assertEqual(expected, job_params)
+
+    def test_setting_a_secret_should_correctly_update_job_params(self):
+        # given: A valid SparkK8sJobBuilder setup and a secret to be set in driver & executor
+        secrets = [
+            {"name": "api_key", "secretType": "secret-type", "path": "/etc/tmp"},
+            {
+                "name": "db_secret_value",
+                "secretType": "secret-type",
+                "path": "/etc/db_secret_value",
+            },
+        ]
+
+        # when: Building the operator
+        builder = self.sut
+
+        builder.set_secrets(secrets)
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the secret is correctly to both driver and executors
+        self.assertEqual(
+            spark_operator.params["driver"]["secrets"],
+            spark_operator.params["executor"]["secrets"],
+        )
+        # then: Assert the secret is correctly added
+        self.assertEqual(
+            [
+                {"name": "api_key", "secretType": "secret-type", "path": "/etc/tmp"},
+                {
+                    "name": "db_secret_value",
+                    "secretType": "secret-type",
+                    "path": "/etc/db_secret_value",
+                },
+            ],
+            spark_operator.params["driver"]["secrets"],
+        )
