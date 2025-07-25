@@ -105,7 +105,7 @@ SPARK_JOB_SPEC_TEMPLATE = {
                 "karpenter.sh/do-not-consolidate": "true",
                 "karpenter.sh/do-not-disrupt": "true",
             },
-            "labels": {"version": "3.4.2"},
+            "labels": {"version": DEFAULT_SPARK_VERSION},
             "secrets": [],
             "env": [],
         },
