@@ -184,7 +184,10 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: the driver should have the xcom sidecar container setup
         self.assertEqual(len(driver.get("sidecars")), 1)
         sidecars = driver.get("sidecars")[0]
-        self.assertEqual(sidecars.get("image"), "alpine")
+        self.assertEqual(
+            sidecars.get("image"),
+            "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
+        )
         self.assertEqual(sidecars.get("name"), "airflow-xcom-sidecar")
         self.assertEqual(sidecars.get("volumeMounts")[0].get("name"), "xcom")
         self.assertEqual(sidecars.get("volumeMounts")[0].get("mountPath"), "/airflow/xcom")
@@ -1071,7 +1074,10 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
 
         self.assertEqual(1, len(sidecars))
         self.assertEqual("airflow-xcom-sidecar", sidecars[0]["name"])
-        self.assertEqual("alpine", sidecars[0]["image"])
+        self.assertEqual(
+            "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
+            sidecars[0]["image"],
+        )
         self.assertEqual(
             [
                 "sh",

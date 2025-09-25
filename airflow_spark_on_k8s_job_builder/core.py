@@ -544,7 +544,7 @@ class SparkK8sJobBuilder(object):
             "mountPath": "/airflow/xcom",
         }
         update_sidecars = {
-            "image": "alpine",
+            "image": "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
             "name": "airflow-xcom-sidecar",
             "command": [
                 "sh",
