@@ -520,7 +520,7 @@ class SparkK8sJobBuilder(object):
                mountPath: /airflow/xcom
            sidecars:
              - name: airflow-xcom-sidecar
-               image: 600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine
+               image: public.ecr.aws/docker/library/alpine:3.22.1
                command: [ "sh", "-c", 'trap "echo {} > /airflow/xcom/return.json; exit 0" INT; while true; do sleep 1; done;' ]
                volumeMounts:
                  - name: xcom
@@ -544,7 +544,7 @@ class SparkK8sJobBuilder(object):
             "mountPath": "/airflow/xcom",
         }
         update_sidecars = {
-            "image": "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
+            "image": "public.ecr.aws/docker/library/alpine:3.22.1",
             "name": "airflow-xcom-sidecar",
             "command": [
                 "sh",
