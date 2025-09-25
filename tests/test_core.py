@@ -186,7 +186,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         sidecars = driver.get("sidecars")[0]
         self.assertEqual(
             sidecars.get("image"),
-            "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
+            "public.ecr.aws/docker/library/alpine:3.22.1",
         )
         self.assertEqual(sidecars.get("name"), "airflow-xcom-sidecar")
         self.assertEqual(sidecars.get("volumeMounts")[0].get("name"), "xcom")
@@ -1075,7 +1075,7 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         self.assertEqual(1, len(sidecars))
         self.assertEqual("airflow-xcom-sidecar", sidecars[0]["name"])
         self.assertEqual(
-            "600765955058.dkr.ecr.eu-central-1.amazonaws.com/cache-docker-hub/alpine",
+            "public.ecr.aws/docker/library/alpine:3.22.1",
             sidecars[0]["image"],
         )
         self.assertEqual(
