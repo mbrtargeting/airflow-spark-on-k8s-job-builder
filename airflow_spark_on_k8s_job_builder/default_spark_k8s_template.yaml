@@ -46,6 +46,9 @@ spec:
     coreLimit: "{{ params.driver.coreLimit }}"
     {% endif %}
     memory: "{{ params.driver.memory }}"
+    {% if params.driver.memoryOverhead is defined and params.driver.memoryOverhead is not none %}
+    memoryOverhead: "{{ params.driver.memoryOverhead }}"
+    {% endif %}
     {% if params.driver.labels is not none %}
     labels: {{ params.driver.labels }}
     {% endif %}

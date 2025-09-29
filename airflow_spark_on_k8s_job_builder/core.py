@@ -317,6 +317,15 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["driver"]["memory"] = memory
         return self
 
+    def set_driver_memory_overhead(self, memory_overhead: Optional[str]) -> "SparkK8sJobBuilder":
+        """Sets the driver memory overhead."""
+        if memory_overhead is not None and (not memory_overhead or len(memory_overhead) == 0):
+            raise ValueError(
+                "Memory overhead must be either None or a non-empty string; for example: 1g"
+            )
+        self.get_job_params()["driver"]["memoryOverhead"] = memory_overhead
+        return self
+
     def get_executor_cores(self):
         return self.get_job_params()["executor"]["cores"]
 
