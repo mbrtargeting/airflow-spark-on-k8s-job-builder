@@ -365,6 +365,15 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["executor"]["memory"] = memory
         return self
 
+    def set_executor_memory_overhead(self, memory_overhead: Optional[str]) -> "SparkK8sJobBuilder":
+        """Sets the executor memory overhead."""
+        if memory_overhead is not None and (not memory_overhead or len(memory_overhead) == 0):
+            raise ValueError(
+                "Memory overhead must be either None or a non-empty string; for example: 1g"
+            )
+        self.get_job_params()["executor"]["memoryOverhead"] = memory_overhead
+        return self
+
     def set_executor_instances(self, instances: int) -> "SparkK8sJobBuilder":
         """Sets the number of executor instances."""
         if not instances:

@@ -478,6 +478,28 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
         # then: It should correctly assign that value of memory
         self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["memory"])
 
+    def test_set_executor_memory_overhead_with_invalid_value_should_fail(self):
+        # given: a standard SUT
+        # when: Setting SUT with invalid value (empty string)
+        # then: It should raise a ValueError for invalid value
+        with self.assertRaises(ValueError):
+            self.sut.set_executor_memory_overhead("")
+
+    def test_set_executor_memory_overhead_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with valid memory overhead value
+        expected = "2g"
+        self.sut.set_executor_memory_overhead(expected)
+        # then: It should correctly assign that value of memory overhead
+        self.assertEqual(expected, self.sut._job_spec["params"]["executor"]["memoryOverhead"])
+
+    def test_set_executor_memory_overhead_with_none_should_succeed(self):
+        # given: a standard SUT
+        # when: Setting SUT with None (to clear memory overhead)
+        self.sut.set_executor_memory_overhead(None)
+        # then: It should correctly assign None
+        self.assertEqual(None, self.sut._job_spec["params"]["executor"]["memoryOverhead"])
+
     def test_set_executor_instances_with_invalid_value_should_fail(self):
         # given: a standard SUT
         with self.assertRaises(ValueError):
