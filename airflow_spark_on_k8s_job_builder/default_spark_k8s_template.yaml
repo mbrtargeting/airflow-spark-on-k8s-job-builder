@@ -46,6 +46,9 @@ spec:
     coreLimit: "{{ params.driver.coreLimit }}"
     {% endif %}
     memory: "{{ params.driver.memory }}"
+    {% if params.driver.memoryOverhead is defined and params.driver.memoryOverhead is not none %}
+    memoryOverhead: "{{ params.driver.memoryOverhead }}"
+    {% endif %}
     {% if params.driver.labels is not none %}
     labels: {{ params.driver.labels }}
     {% endif %}
@@ -72,6 +75,9 @@ spec:
     coreLimit: "{{ params.executor.coreLimit }}"
     {% endif %}
     memory: "{{ params.executor.memory }}"
+    {% if params.executor.memoryOverhead is defined and params.executor.memoryOverhead is not none %}
+    memoryOverhead: "{{ params.executor.memoryOverhead }}"
+    {% endif %}
     {% if params.executor.tolerations is not none %}
     tolerations: {{ params.executor.tolerations }}
     {% endif %}
