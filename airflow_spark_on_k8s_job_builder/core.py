@@ -505,6 +505,47 @@ class SparkK8sJobBuilder(object):
 
         return self
 
+    def add_executor_empty_dir_volume(
+        self,
+        volume_name: str,
+        mount_path: str,
+        size_limit: Optional[str] = None,
+        readonly: bool = False,
+    ) -> "SparkK8sJobBuilder":
+        """Adds an emptyDir volume mounted to executor pods only
+
+        Args:
+            volume_name: Name of the volume
+            mount_path: Path where the volume should be mounted
+            size_limit: Optional size limit for emptyDir (e.g., "10Gi", "500Mi")
+            readonly: Whether to mount the volume as read-only
+        """
+        existing_volumes = self.get_job_params().get("volumes", [])
+
+        empty_dir_config = {}
+        if size_limit is not None:
+            empty_dir_config["sizeLimit"] = size_limit
+
+        volume_config = {
+            "name": volume_name,
+            "emptyDir": empty_dir_config,
+        }
+
+        existing_volumes.append(volume_config)
+        self.get_job_params()["volumes"] = existing_volumes
+
+        volume_mount_config = {
+            "name": volume_name,
+            "mountPath": mount_path,
+            "readOnly": readonly,
+        }
+
+        executor_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
+        executor_volume_mounts.append(volume_mount_config)
+        self.get_job_params()["executor"]["volumeMounts"] = executor_volume_mounts
+
+        return self
+
     def setup_xcom_sidecar_container(self):
         """
         Sets up the xcom sidecar container in spark drive pod as a sidecar container, as such:

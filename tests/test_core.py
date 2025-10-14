@@ -1137,6 +1137,162 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             spark_operator.params["executor"]["volumeMounts"],
         )
 
+    def test_executor_empty_dir_volume_with_size_limit(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding an emptyDir volume with size limit
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-dir",
+            mount_path="/tmp/spark-local",
+            size_limit="10Gi",
+            readonly=False,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured correctly
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-local-dir",
+                    "emptyDir": {"sizeLimit": "10Gi"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume is NOT mounted on driver
+        self.assertEqual(
+            [],
+            spark_operator.params["driver"].get("volumeMounts", []),
+        )
+        # then: Assert volume IS mounted on executors
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark-local",
+                    "name": "spark-local-dir",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_executor_empty_dir_volume_without_size_limit(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding an emptyDir volume without size limit
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-temp",
+            mount_path="/tmp/spark-temp",
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured with empty emptyDir config
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-temp",
+                    "emptyDir": {},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume is only mounted on executors
+        self.assertEqual(
+            [],
+            spark_operator.params["driver"].get("volumeMounts", []),
+        )
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark-temp",
+                    "name": "spark-temp",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_executor_empty_dir_volume_readonly(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a readonly emptyDir volume
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-readonly",
+            mount_path="/tmp/spark-readonly",
+            size_limit="5Gi",
+            readonly=True,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume mount is readonly
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark-readonly",
+                    "name": "spark-readonly",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_executor_empty_dir_volume_multiple_volumes(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding multiple emptyDir volumes
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-1",
+            mount_path="/tmp/spark-local-1",
+            size_limit="10Gi",
+        )
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-2",
+            mount_path="/tmp/spark-local-2",
+            size_limit="20Gi",
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert both volumes are configured
+        self.assertEqual(2, len(spark_operator.params["volumes"]))
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-local-1",
+                    "emptyDir": {"sizeLimit": "10Gi"},
+                },
+                {
+                    "name": "spark-local-2",
+                    "emptyDir": {"sizeLimit": "20Gi"},
+                },
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert both volumes are mounted on executors
+        self.assertEqual(2, len(spark_operator.params["executor"]["volumeMounts"]))
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/tmp/spark-local-1",
+                    "name": "spark-local-1",
+                    "readOnly": False,
+                },
+                {
+                    "mountPath": "/tmp/spark-local-2",
+                    "name": "spark-local-2",
+                    "readOnly": False,
+                },
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
     def test_re_rendering_template_should_leave_no_jinja_vars_dangling(self):
         # given: a standard SUT with the following special settings
         job_arguments = [
