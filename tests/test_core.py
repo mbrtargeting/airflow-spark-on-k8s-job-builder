@@ -1293,6 +1293,94 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             spark_operator.params["executor"]["volumeMounts"],
         )
 
+    def test_executor_empty_dir_volume_prevents_duplicate_volumes(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding the same emptyDir volume twice
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-dir",
+            mount_path="/var/spark-local",
+            size_limit="10Gi",
+        )
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-dir",
+            mount_path="/var/spark-local",
+            size_limit="10Gi",
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert only one volume is configured (no duplicates)
+        self.assertEqual(1, len(spark_operator.params["volumes"]))
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-local-dir",
+                    "emptyDir": {"sizeLimit": "10Gi"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert only one volume mount on executor (no duplicates)
+        self.assertEqual(1, len(spark_operator.params["executor"]["volumeMounts"]))
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/var/spark-local",
+                    "name": "spark-local-dir",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_executor_empty_dir_volume_prevents_duplicate_mount_paths(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding emptyDir volumes with different names but same mount path
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-1",
+            mount_path="/var/spark-local",
+            size_limit="10Gi",
+        )
+        builder.add_executor_empty_dir_volume(
+            volume_name="spark-local-2",
+            mount_path="/var/spark-local",
+            size_limit="20Gi",
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert both volumes are configured (different names)
+        self.assertEqual(2, len(spark_operator.params["volumes"]))
+        self.assertEqual(
+            [
+                {
+                    "name": "spark-local-1",
+                    "emptyDir": {"sizeLimit": "10Gi"},
+                },
+                {
+                    "name": "spark-local-2",
+                    "emptyDir": {"sizeLimit": "20Gi"},
+                },
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert only first volume mount is added (duplicate mount path prevented)
+        self.assertEqual(1, len(spark_operator.params["executor"]["volumeMounts"]))
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/var/spark-local",
+                    "name": "spark-local-1",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
     def test_re_rendering_template_should_leave_no_jinja_vars_dangling(self):
         # given: a standard SUT with the following special settings
         job_arguments = [

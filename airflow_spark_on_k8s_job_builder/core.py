@@ -522,6 +522,10 @@ class SparkK8sJobBuilder(object):
         """
         existing_volumes = self.get_job_params().get("volumes", [])
 
+        # Check if volume with this name already exists
+        if any(v.get("name") == volume_name for v in existing_volumes):
+            return self
+
         empty_dir_config = {}
         if size_limit is not None:
             empty_dir_config["sizeLimit"] = size_limit
@@ -541,6 +545,11 @@ class SparkK8sJobBuilder(object):
         }
 
         executor_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
+
+        # Check if mount path already exists
+        if any(vm.get("mountPath") == mount_path for vm in executor_volume_mounts):
+            return self
+
         executor_volume_mounts.append(volume_mount_config)
         self.get_job_params()["executor"]["volumeMounts"] = executor_volume_mounts
 
