@@ -505,6 +505,57 @@ class SparkK8sJobBuilder(object):
 
         return self
 
+    def add_configmap_volume(
+        self,
+        volume_name: str,
+        configmap_name: str,
+        driver_mount_path: Optional[str] = None,
+        executor_mount_path: Optional[str] = None,
+        readonly: bool = True,
+    ) -> "SparkK8sJobBuilder":
+        """Adds a configMap volume with flexible mounting options
+
+        Args:
+            volume_name: Name of the volume
+            configmap_name: Name of the ConfigMap to mount
+            driver_mount_path: Path where the volume should be mounted in the driver (None to skip)
+            executor_mount_path: Path where the volume should be mounted in the executor (None to skip)
+            readonly: Whether to mount the volume as read-only (default: True)
+        """
+        existing_volumes = self.get_job_params().get("volumes", [])
+
+        volume_config = {
+            "name": volume_name,
+            "configMap": {"name": configmap_name},
+        }
+
+        existing_volumes.append(volume_config)
+        self.get_job_params()["volumes"] = existing_volumes
+
+        if driver_mount_path:
+            driver_volume_mount_config = {
+                "name": volume_name,
+                "mountPath": driver_mount_path,
+                "readOnly": readonly,
+            }
+            existing_driver_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
+            existing_driver_volume_mounts.append(driver_volume_mount_config)
+            self.get_job_params()["driver"]["volumeMounts"] = existing_driver_volume_mounts
+
+        if executor_mount_path:
+            executor_volume_mount_config = {
+                "name": volume_name,
+                "mountPath": executor_mount_path,
+                "readOnly": readonly,
+            }
+            existing_executor_volume_mounts = self.get_job_params()["executor"].get(
+                "volumeMounts", []
+            )
+            existing_executor_volume_mounts.append(executor_volume_mount_config)
+            self.get_job_params()["executor"]["volumeMounts"] = existing_executor_volume_mounts
+
+        return self
+
     def add_executor_empty_dir_volume(
         self,
         volume_name: str,
