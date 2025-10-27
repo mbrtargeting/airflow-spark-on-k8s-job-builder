@@ -1477,3 +1477,278 @@ class TestSparkK8sJobBuilder(unittest.TestCase):
             ],
             spark_operator.params["driver"]["secrets"],
         )
+
+    def test_add_configmap_volume_driver_only(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a configMap volume mounted to driver only
+        builder.add_configmap_volume(
+            volume_name="driver-config",
+            configmap_name="test-driver-configmap",
+            driver_mount_path="/test-config",
+            executor_mount_path=None,
+            readonly=True,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured correctly
+        self.assertEqual(
+            [
+                {
+                    "name": "driver-config",
+                    "configMap": {"name": "test-driver-configmap"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume IS mounted on driver
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/test-config",
+                    "name": "driver-config",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        # then: Assert volume is NOT mounted on executor
+        self.assertEqual(
+            [],
+            spark_operator.params["executor"].get("volumeMounts", []),
+        )
+
+    def test_add_configmap_volume_executor_only(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a configMap volume mounted to executor only
+        builder.add_configmap_volume(
+            volume_name="executor-config",
+            configmap_name="executor-configmap",
+            driver_mount_path=None,
+            executor_mount_path="/executor-config",
+            readonly=True,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured correctly
+        self.assertEqual(
+            [
+                {
+                    "name": "executor-config",
+                    "configMap": {"name": "executor-configmap"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume is NOT mounted on driver
+        self.assertEqual(
+            [],
+            spark_operator.params["driver"].get("volumeMounts", []),
+        )
+        # then: Assert volume IS mounted on executor
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/executor-config",
+                    "name": "executor-config",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_add_configmap_volume_both_driver_and_executor(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a configMap volume mounted to both driver and executor
+        builder.add_configmap_volume(
+            volume_name="shared-config",
+            configmap_name="shared-configmap",
+            driver_mount_path="/shared-config",
+            executor_mount_path="/shared-config",
+            readonly=True,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured correctly
+        self.assertEqual(
+            [
+                {
+                    "name": "shared-config",
+                    "configMap": {"name": "shared-configmap"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume IS mounted on driver
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/shared-config",
+                    "name": "shared-config",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        # then: Assert volume IS mounted on executor
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/shared-config",
+                    "name": "shared-config",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_add_configmap_volume_with_different_mount_paths(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a configMap volume with different mount paths for driver and executor
+        builder.add_configmap_volume(
+            volume_name="app-config",
+            configmap_name="app-configmap",
+            driver_mount_path="/driver/config",
+            executor_mount_path="/executor/config",
+            readonly=False,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume is configured correctly
+        self.assertEqual(
+            [
+                {
+                    "name": "app-config",
+                    "configMap": {"name": "app-configmap"},
+                }
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert volume is mounted on driver with correct path
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/driver/config",
+                    "name": "app-config",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        # then: Assert volume is mounted on executor with correct path
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/executor/config",
+                    "name": "app-config",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_add_configmap_volume_multiple_volumes(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding multiple configMap volumes
+        builder.add_configmap_volume(
+            volume_name="config-1",
+            configmap_name="configmap-1",
+            driver_mount_path="/config-1",
+            executor_mount_path=None,
+        )
+        builder.add_configmap_volume(
+            volume_name="config-2",
+            configmap_name="configmap-2",
+            driver_mount_path=None,
+            executor_mount_path="/config-2",
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert both volumes are configured
+        self.assertEqual(2, len(spark_operator.params["volumes"]))
+        self.assertEqual(
+            [
+                {
+                    "name": "config-1",
+                    "configMap": {"name": "configmap-1"},
+                },
+                {
+                    "name": "config-2",
+                    "configMap": {"name": "configmap-2"},
+                },
+            ],
+            spark_operator.params["volumes"],
+        )
+        # then: Assert first volume is mounted on driver only
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/config-1",
+                    "name": "config-1",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        # then: Assert second volume is mounted on executor only
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/config-2",
+                    "name": "config-2",
+                    "readOnly": True,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
+
+    def test_add_configmap_volume_readonly_flag(self):
+        # given: A valid SparkK8sJobBuilder setup
+        builder = self.sut
+
+        # when: Adding a configMap volume with readonly=False
+        builder.add_configmap_volume(
+            volume_name="writable-config",
+            configmap_name="writable-configmap",
+            driver_mount_path="/writable",
+            executor_mount_path="/writable",
+            readonly=False,
+        )
+        tasks = builder.build()
+        spark_operator = tasks[0]
+
+        # then: Assert the volume mounts are not readonly
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/writable",
+                    "name": "writable-config",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["driver"]["volumeMounts"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "mountPath": "/writable",
+                    "name": "writable-config",
+                    "readOnly": False,
+                }
+            ],
+            spark_operator.params["executor"]["volumeMounts"],
+        )
