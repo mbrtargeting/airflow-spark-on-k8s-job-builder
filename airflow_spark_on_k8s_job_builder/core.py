@@ -488,20 +488,13 @@ class SparkK8sJobBuilder(object):
 
         existing_volumes.append(volume_config)
         self.get_job_params()["volumes"] = existing_volumes
-
-        volume_mount_config = {
-            "name": volume_name,
-            "mountPath": mount_path,
-            "readOnly": readonly,
-        }
-
-        existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
-        existing_volume_mounts.append(volume_mount_config)
-        self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
-
-        existing_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
-        existing_volume_mounts.append(volume_mount_config)
-        self.get_job_params()["executor"]["volumeMounts"] = existing_volume_mounts
+        self._setup_volume_mount(
+            executor=True,
+            driver=True,
+            volume_name=volume_name,
+            mount_path=mount_path,
+            readonly=readonly,
+        )
 
         return self
 
@@ -533,26 +526,22 @@ class SparkK8sJobBuilder(object):
         self.get_job_params()["volumes"] = existing_volumes
 
         if driver_mount_path:
-            driver_volume_mount_config = {
-                "name": volume_name,
-                "mountPath": driver_mount_path,
-                "readOnly": readonly,
-            }
-            existing_driver_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
-            existing_driver_volume_mounts.append(driver_volume_mount_config)
-            self.get_job_params()["driver"]["volumeMounts"] = existing_driver_volume_mounts
+            self._setup_volume_mount(
+                executor=False,
+                driver=True,
+                volume_name=volume_name,
+                mount_path=driver_mount_path,
+                readonly=readonly,
+            )
 
         if executor_mount_path:
-            executor_volume_mount_config = {
-                "name": volume_name,
-                "mountPath": executor_mount_path,
-                "readOnly": readonly,
-            }
-            existing_executor_volume_mounts = self.get_job_params()["executor"].get(
-                "volumeMounts", []
+            self._setup_volume_mount(
+                executor=True,
+                driver=False,
+                volume_name=volume_name,
+                mount_path=executor_mount_path,
+                readonly=readonly,
             )
-            existing_executor_volume_mounts.append(executor_volume_mount_config)
-            self.get_job_params()["executor"]["volumeMounts"] = existing_executor_volume_mounts
 
         return self
 
@@ -584,16 +573,13 @@ class SparkK8sJobBuilder(object):
 
         existing_volumes.append(volume_config)
         self.get_job_params()["volumes"] = existing_volumes
-
-        volume_mount_config = {
-            "name": volume_name,
-            "mountPath": mount_path,
-            "readOnly": readonly,
-        }
-
-        executor_volume_mounts = self.get_job_params()["executor"].get("volumeMounts", [])
-        executor_volume_mounts.append(volume_mount_config)
-        self.get_job_params()["executor"]["volumeMounts"] = executor_volume_mounts
+        self._setup_volume_mount(
+            executor=True,
+            driver=False,
+            volume_name=volume_name,
+            mount_path=mount_path,
+            readonly=readonly,
+        )
 
         return self
 
@@ -631,10 +617,6 @@ class SparkK8sJobBuilder(object):
             "name": "xcom",
             "emptyDir": {},
         }
-        update_volume_mounts = {
-            "name": "xcom",
-            "mountPath": "/airflow/xcom",
-        }
         update_sidecars = {
             "image": "public.ecr.aws/docker/library/alpine:3.22.1",
             "name": "airflow-xcom-sidecar",
@@ -656,9 +638,14 @@ class SparkK8sJobBuilder(object):
                 },
             },
         }
-        existing_volume_mounts = self.get_job_params()["driver"].get("volumeMounts", [])
-        existing_volume_mounts.append(update_volume_mounts)
-        self.get_job_params()["driver"]["volumeMounts"] = existing_volume_mounts
+
+        self._setup_volume_mount(
+            executor=False,
+            driver=True,
+            volume_name="xcom",
+            mount_path="/airflow/xcom",
+            readonly=False,
+        )
 
         existing_sidecars = self.get_job_params()["driver"].get("sidecars", [])
         existing_sidecars.append(update_sidecars)
@@ -698,6 +685,24 @@ class SparkK8sJobBuilder(object):
             raise ValueError("Need to provide a non-empty string for changing the task group id")
         self._task_group_id = task_group_id
         return self
+
+    def _setup_volume_mount(
+        self, executor: bool, driver: bool, volume_name: str, mount_path: str, readonly: bool
+    ):
+        vm_config = {
+            "name": volume_name,
+            "mountPath": mount_path,
+            "readOnly": readonly,
+        }
+        if executor:
+            self._attach_volume_mount_config(actor="executor", volume_mount_config=vm_config)
+        if driver:
+            self._attach_volume_mount_config(actor="driver", volume_mount_config=vm_config)
+
+    def _attach_volume_mount_config(self, actor: str, volume_mount_config: Dict[str, str]):
+        actor_volume_mounts = self.get_job_params()[actor].get("volumeMounts", [])
+        actor_volume_mounts.append(volume_mount_config)
+        self.get_job_params()[actor]["volumeMounts"] = actor_volume_mounts
 
     def _validate_task_id(self):
         if not self._task_id:
