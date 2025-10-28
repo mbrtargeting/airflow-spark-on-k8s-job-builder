@@ -1,0 +1,10 @@
+# CI/CD Constraints
+#
+# This file contains version constraints for tools used in CI/CD that are not
+# part of the application's runtime or development dependencies.
+
+# Pin pip to 25.2 due to incompatibility with pip-tools 7.5.1
+# Issue: pip 25.3 removed the 'use_pep517' attribute that pip-tools depends on
+# See: https://github.com/jazzband/pip-tools/issues/2252
+# Can be removed once pip-tools releases a version compatible with pip 25.3+
+pip==25.2
