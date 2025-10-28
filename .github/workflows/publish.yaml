@@ -28,7 +28,7 @@ jobs:
         id: install-dependencies
         run: |
           sudo apt-get update && sudo apt-get install gcc build-essential libsasl2-dev -y
-          python -m pip install --upgrade pip
+          python -m pip install --constraint constraints.txt pip
           pip install pip-tools build twine
 
       - name: Validate version matches tag
